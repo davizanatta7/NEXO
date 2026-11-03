@@ -1,0 +1,120 @@
+{
+  "scenarioName": "Cenário 2 — Diagnóstico Evoluído (Pós-Plano 5W2H & Automação DevSecOps/SOAR)",
+  "exportedAt": "2026-11-28T16:00:00Z",
+  "institution": "PUC Minas - Campus Poços de Caldas | Ciência da Computação",
+  "authors": "Davi Freire Zanatta & Luiz Alberto Ferreira Gomes",
+  "targetIG": "IG2",
+  "summaryMetrics": {
+    "avgAsIs": 91,
+    "avgToBe": 92,
+    "avgGap": 1,
+    "cmmcLevel": "Nível 2 Consolidado / Nível 3 Parcial",
+    "totalAssets": 10,
+    "docAssets_1_1_2": 4,
+    "falsePositiveRate": "0.0%"
+  },
+  "apiConnectors": [
+    {
+      "id": "CONN-AWS",
+      "provider": "Amazon Web Services (AWS)",
+      "service": "AWS Audit Manager & SecurityHub API",
+      "status": "100% Conforme (KMS & Object Lock Ativos)",
+      "latencyMs": 104,
+      "evidencesCollected": 64,
+      "lastSync": "28/11/2026 15:58:10"
+    },
+    {
+      "id": "CONN-AZURE",
+      "provider": "Microsoft Azure",
+      "service": "Microsoft Defender for Cloud API",
+      "status": "96% Conforme (Baseline Ansible Aplicado)",
+      "latencyMs": 112,
+      "evidencesCollected": 58,
+      "lastSync": "28/11/2026 15:59:02"
+    },
+    {
+      "id": "CONN-IAM",
+      "provider": "Identidade Híbrida & CMDB",
+      "service": "Entra ID / Active Directory & Docs 1.1.2",
+      "status": "100% Conforme (MFA & Docs 1.1.2 Em Dia)",
+      "latencyMs": 88,
+      "evidencesCollected": 48,
+      "lastSync": "28/11/2026 15:59:45"
+    }
+  ],
+  "cisControlsScores": [
+    { "id": 1, "code": "CIS 01", "asIsScore": 96, "status": "Implementado - Docs 1.1.2 Versionados (96%)" },
+    { "id": 2, "code": "CIS 02", "asIsScore": 92, "status": "Implementado - SBOM & Inventário (92%)" },
+    { "id": 3, "code": "CIS 03", "asIsScore": 95, "status": "Implementado - KMS/TDE & RoPA LGPD (95%)" },
+    { "id": 4, "code": "CIS 04", "asIsScore": 94, "status": "Implementado - Hardening IaC Ansible (94%)" },
+    { "id": 5, "code": "CIS 05", "asIsScore": 96, "status": "Implementado - Contas Admin Dedicadas (96%)" },
+    { "id": 6, "code": "CIS 06", "asIsScore": 98, "status": "Implementado - MFA 100% Obrigatório (98%)" },
+    { "id": 7, "code": "CIS 07", "asIsScore": 90, "status": "Implementado - Scan Contínuo Agentless (90%)" },
+    { "id": 8, "code": "CIS 08", "asIsScore": 92, "status": "Implementado - SIEM 90 Dias Imutável (92%)" },
+    { "id": 9, "code": "CIS 09", "asIsScore": 92, "status": "Implementado - DMARC Reject & DNS Filter (92%)" },
+    { "id": 10, "code": "CIS 10", "asIsScore": 95, "status": "Implementado - EDR Comportamental Ativo (95%)" },
+    { "id": 11, "code": "CIS 11", "asIsScore": 96, "status": "Implementado - Object Lock & Restore Testado (96%)" },
+    { "id": 12, "code": "CIS 12", "asIsScore": 90, "status": "Implementado - Microssegmentação VPC/VLAN (90%)" },
+    { "id": 13, "code": "CIS 13", "asIsScore": 88, "status": "Implementado - NIDS & GuardDuty Ativos (88%)" },
+    { "id": 14, "code": "CIS 14", "asIsScore": 92, "status": "Implementado - Programa Contínuo LGPD/SI (92%)" },
+    { "id": 15, "code": "CIS 15", "asIsScore": 86, "status": "Implementado - Contratos DPA Auditados (86%)" },
+    { "id": 16, "code": "CIS 16", "asIsScore": 88, "status": "Implementado - Pipeline SAST/SCA Contínuo (88%)" },
+    { "id": 17, "code": "CIS 17", "asIsScore": 92, "status": "Implementado - Playbooks SOAR Ativos (92%)" },
+    { "id": 18, "code": "CIS 18", "asIsScore": 85, "status": "Implementado - Pentest & PoC Validados (85%)" }
+  ],
+  "assets": [
+    {
+      "id": "AST-001",
+      "name": "Active Directory / Entra ID (100% Contas Privilegiadas com MFA FIDO2)",
+      "category": "Software / Identidade",
+      "cisControl": "CIS 05 / CIS 06 (6.5)",
+      "nistFunction": "PROTECT",
+      "ciaImpact": "Confidencialidade",
+      "owner": "IAM Graph API",
+      "criticality": "Crítica",
+      "status": "100% Conforme (CIS 6.5)",
+      "cvss": 1.2,
+      "notes": "Regra RULE-CIS-6.5-MFA validada com sucesso após política de Acesso Condicional."
+    },
+    {
+      "id": "AST-002",
+      "name": "Repositório Git de Governança: PGSI, PRI (CIS 17) e RoPA LGPD/GDPR Assinados",
+      "category": "Documentação (CIS v8.1 - 1.1.2)",
+      "cisControl": "CIS 01 (1.1.2) / GOVERN",
+      "nistFunction": "GOVERN",
+      "ciaImpact": "Integridade",
+      "owner": "Comitê de Governança & DPO",
+      "criticality": "Alta",
+      "status": "100% Conforme (<30 dias)",
+      "cvss": 1.0,
+      "notes": "Ativos documentais versionados e auditados automaticamente pela regra RULE-CIS-1.1.2."
+    },
+    {
+      "id": "AST-003",
+      "name": "Cluster Banco de Dados ERP (Criptografia AWS KMS + TDE Homologação e Produção)",
+      "category": "Dados / Software",
+      "cisControl": "CIS 03 (3.11)",
+      "nistFunction": "PROTECT",
+      "ciaImpact": "Confidencialidade",
+      "owner": "AWS Audit Manager API",
+      "criticality": "Crítica",
+      "status": "100% Criptografado",
+      "cvss": 1.5,
+      "notes": "Conformidade integral com Art. 46 da LGPD, Art. 32 do GDPR e Anexo A.8.24 da ISO 27001."
+    },
+    {
+      "id": "AST-004",
+      "name": "Cofre SIEM Centralizado & Backup S3 Object Lock (Retenção Imutável 180 Dias)",
+      "category": "Hardware / Nuvem",
+      "cisControl": "CIS 08 (8.9) / CIS 11 (11.5)",
+      "nistFunction": "DETECT / RECOVER",
+      "ciaImpact": "Disponibilidade",
+      "owner": "SecOps / Terraform IaC",
+      "criticality": "Crítica",
+      "status": "Imutável & Testado",
+      "cvss": 1.4,
+      "notes": "Provisionado via módulo Terraform Secure-by-Default com teste de restore validado."
+    }
+  ]
+}
+

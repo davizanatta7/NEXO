@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NEXO | Automatização de Gap Analysis em Sistemas de Gestão de Segurança</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Cabeçalho Institucional e Controles Globais -->
+  <header class="app-header">
+    <div class="brand-group">
+      <div class="brand-logo">NX</div>
+      <div class="brand-title">
+        <h1>
+          NEXO — Automatização de Gap Analysis em Sistemas de Gestão de Segurança
+          <span class="badge-version">CIS v8.1 &bull; ISO 27001/27002 &bull; NIST CSF 2.0 &bull; LGPD &amp; GDPR</span>
+        </h1>
+        <div class="brand-subtitle">
+          PUC Minas (Campus Poços de Caldas) &bull; Ciência da Computação (Engenharia de Software) &bull;
+          <strong>Davi Freire Zanatta</strong> &amp; <strong>Luiz Alberto Ferreira Gomes</strong> (2º Sem – 2026)
+        </div>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <div class="ig-selector-box" title="Selecione o Grupo de Implementação alvo (Estado Desejado To-Be)">
+        <span>Meta To-Be (CIS v8.1):</span>
+        <select id="globalIgSelector" onchange="changeTargetIG(this.value)">
+          <option value="IG1">IG1 — Higiene Cibernética Essencial</option>
+          <option value="IG2" selected>IG2 — Risco Moderado / Nuvem Híbrida</option>
+          <option value="IG3">IG3 — Alta Maturidade / Missão Crítica</option>
+        </select>
+      </div>
+      <button class="btn btn-success" onclick="runSimulatedDiscovery()">
+        &#9889; Sincronizar APIs Agentless (AWS/Azure/IAM)
+      </button>
+      <input type="file" id="jsonImportInput" accept=".json" style="display:none;" onchange="importDiagnosticJSON(event)" />
+      <button class="btn" onclick="document.getElementById('jsonImportInput').click()">
+        &#128194; Importar JSON
+      </button>
+      <button class="btn" onclick="exportDiagnosticJSON()">
+        &#128190; Exportar JSON
+      </button>
+      <button class="btn btn-primary" onclick="window.print()">
+        &#128424; Imprimir / PDF Executivo
+      </button>
+    </div>
+  </header>
+
+  <!-- Abas das Etapas Metodológicas e Engenharia de Software -->
+  <nav class="nav-tabs">
+    <button class="nav-tab active" data-tab="tab-overview" onclick="switchTab('tab-overview')">
+      <span class="step-pill">Visão Geral</span> Dashboard, Grafo de Risco &amp; Arquitetura
+    </button>
+    <button class="nav-tab" data-tab="tab-stage1" onclick="switchTab('tab-stage1')">
+      <span class="step-pill">Etapa 1</span> Coleta Agentless (AWS/Azure) &amp; Ativos (1.1.2)
+    </button>
+    <button class="nav-tab" data-tab="tab-stage2" onclick="switchTab('tab-stage2')">
+      <span class="step-pill">Etapa 2</span> Motor de Regras (Core) &amp; Compliance To-Be
+    </button>
+    <button class="nav-tab" data-tab="tab-stage3" onclick="switchTab('tab-stage3')">
+      <span class="step-pill">Etapa 3</span> Diagnóstico Gap, Riscos &amp; Maturidade CMMC
+    </button>
+    <button class="nav-tab" data-tab="tab-stage4" onclick="switchTab('tab-stage4')">
+      <span class="step-pill">Etapa 4</span> Plano 5W2H, Automação &amp; Validação (3 Níveis)
+    </button>
+  </nav>
+
+  <!-- Conteúdo Principal -->
+  <main class="main-container">
+
+    <!-- KPIs Dinâmicos Globais -->
+    <section class="kpi-grid" id="globalKpiContainer"></section>
+
+    <!-- ABA 0: VISÃO EXECUTIVA, GRAFO DE RISCO E ARQUITETURA -->
+    <section id="tab-overview" class="tab-section active">
+      <div class="card" style="background: linear-gradient(90deg, rgba(30,41,59,0.95), rgba(30,27,75,0.85));">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+          <div style="flex:1; min-width:300px;">
+            <div style="font-size:0.76rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent-blue); font-weight:700;">
+              Problema de Pesquisa &amp; Motivação (Engenharia de Software)
+            </div>
+            <div style="font-size:0.98rem; font-weight:600; margin:0.35rem 0; color:#fff;">
+              &ldquo;Como o desenvolvimento de uma aplicação automatizada para o Gap Analysis pode reduzir a ineficiência do processo manual e aumentar a precisão na gestão da conformidade de segurança da informação?&rdquo;
+            </div>
+            <div style="font-size:0.82rem; color:var(--text-secondary);">
+              Substituição de planilhas manuais estáticas por <strong>coleta contínua agentless via APIs RESTful</strong> (AWS Audit Manager, Microsoft Defender for Cloud, Active Directory/IAM), <strong>Motor Central de Regras em Python</strong>, persistência relacional em <strong>PostgreSQL</strong> e visualização em <strong>React.js + Grafo de Risco</strong>.
+            </div>
+          </div>
+          <div style="display:flex; gap:0.65rem; flex-wrap:wrap;">
+            <span class="badge badge-blue">Back-end: Python Async REST</span>
+            <span class="badge badge-emerald">DB: PostgreSQL Relacional</span>
+            <span class="badge badge-purple">Front-end: React.js &amp; Risk Graph</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">&#127919; Radiografia As-Is vs. To-Be por Função NIST CSF 2.0</div>
+              <div class="card-subtitle">Alinhamento estrutural dos CIS Controls v8.1 (Incluindo Governança)</div>
+            </div>
+            <span class="badge badge-blue" id="overviewIgBadge">Alvo: IG2</span>
+          </div>
+          <div id="nistComparisonContainer"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">&#128737; Equilíbrio da Tríade CIA &amp; Comparativo Manual vs. Automatizado</div>
+              <div class="card-subtitle">Confidencialidade, Integridade e Disponibilidade + Ganho de Eficiência</div>
+            </div>
+          </div>
+          <div id="ciaAndCmmcContainer"></div>
+        </div>
+      </div>
+
+      <!-- Grafo de Risco Interativo (Seção 4.2 item 3 do Documento) -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">&#128376; Grafo de Risco e Correlação de Evidências (Risk Graph — Seção 4.2.3)</div>
+            <div class="card-subtitle">
+              Rastreabilidade em tempo real: Conectores Agentless (AWS / Azure / IAM) &rarr; Motor Central de Regras &rarr; Normativas (CIS v8.1 / ISO 27001 / LGPD / GDPR) &rarr; Riscos Ativos
+            </div>
+          </div>
+          <span class="badge badge-emerald">0.0% Falsos Positivos</span>
+        </div>
+        <div id="riskGraphSvgContainer" style="width:100%; overflow-x:auto;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">&#128197; Metodologia Iterativa e Cronograma Integrado (2º Semestre de 2026)</div>
+            <div class="card-subtitle">Fusão da Pesquisa Aplicada, Desenvolvimento Iterativo (Core &rarr; APIs &rarr; UI) e Validação em 3 Níveis</div>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table id="timelineTable">
+            <thead>
+              <tr>
+                <th>Etapa Metodológica / Ciclo Iterativo</th>
+                <th>Situação</th>
+                <th>Período</th>
+                <th>Entregável Técnico &amp; Acadêmico</th>
+                <th>Progresso</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 1: ETAPA 1 - CONECTORES AGENTLESS & INVENTÁRIO DE ATIVOS (AS-IS) -->
+    <section id="tab-stage1" class="tab-section">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">&#128268; Conectores de API RESTful Agentless (AWS Audit Manager, Azure Defender for Cloud &amp; IAM)</div>
+            <div class="card-subtitle">Coleta contínua em JSON estruturado substituindo auditorias manuais baseadas em planilhas (Seção 4.2.1)</div>
+          </div>
+          <button class="btn btn-success no-print" onclick="runSimulatedDiscovery()">&#128260; Executar Coleta Agentless Agora</button>
+        </div>
+        <div class="grid-3" id="connectorsCardsContainer" style="margin-bottom:0;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">&#128421; Inventário Dinâmico de Ativos (ITAM — CIS Controls 1, 2 e Salvaguarda 1.1.2)</div>
+            <div class="card-subtitle">
+              Visibilidade do ambiente atual (As-Is): Hardware, Software, Nuvem/Dados e o novo ativo <strong>Documentação (CIS v8.1 - 1.1.2)</strong>
+            </div>
+          </div>
+          <div class="no-print">
+            <button class="btn btn-primary" onclick="openAssetModal()">+ Cadastrar Ativo (As-Is)</button>
+          </div>
+        </div>
+
+        <div class="filter-bar no-print">
+          <input type="text" id="assetSearchInput" class="input-field" placeholder="Buscar ativo, conector, proprietário ou controle CIS..." oninput="renderAssetsTable()" />
+          <select id="assetCategoryFilter" class="select-field" onchange="renderAssetsTable()">
+            <option value="ALL">Todas as Categorias de Ativos</option>
+            <option value="Documentação (CIS v8.1 - 1.1.2)">Documentação (CIS v8.1 - 1.1.2)</option>
+            <option value="Hardware">Hardware / Rede / Nuvem</option>
+            <option value="Software">Software / Identidade / Microsserviços</option>
+            <option value="Dados">Dados Pessoais (LGPD / GDPR)</option>
+          </select>
+        </div>
+
+        <div class="table-responsive">
+          <table id="assetsTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Ativo / Componente</th>
+                <th>Categoria (CIS v8.1)</th>
+                <th>Controle CIS / NIST</th>
+                <th>Pilar CIA</th>
+                <th>Criticidade</th>
+                <th>Score CVSS</th>
+                <th>Status As-Is</th>
+                <th>Evidência / Observações</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 2: ETAPA 2 - MOTOR CENTRAL DE REGRAS (CORE) & COMPLIANCE TO-BE -->
+    <section id="tab-stage2" class="tab-section">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">&#9881; Motor Central de Regras Lógicas (Core Rule Engine — Seção 4.1.1 e 4.1.3)</div>
+            <div class="card-subtitle">Tradução das exigências normativas (ISO 27001/27002, NIST CSF 2.0, CIS v8.1, LGPD e GDPR) em regras programáticas auditáveis</div>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table id="coreRulesTable">
+            <thead>
+              <tr>
+                <th>ID da Regra</th>
+                <th>Regra Lógica de Software (Core Engine)</th>
+                <th>Conector API</th>
+                <th>Correlação Normativa</th>
+                <th>Payload JSON (Evidência)</th>
+                <th>Resultado</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">&#9878; Matriz de Conformidade Multi-Framework (CIS v8.1 &harr; ISO/IEC 27001/27002 &harr; NIST CSF 2.0 &harr; LGPD/GDPR)</div>
+            <div class="card-subtitle">
+              Altere o status das salvaguardas abaixo para recalcular instantaneamente o Estado Atual (As-Is) e o Distanciamento (Gap)
+            </div>
+          </div>
+          <div class="filter-bar no-print" style="margin-bottom:0;">
+            <select id="cisFunctionFilter" class="select-field" onchange="renderComplianceMatrix()">
+              <option value="ALL">Todas as Funções NIST CSF 2.0</option>
+              <option value="GOVERN">GOVERN (Governança - Novo v8.1)</option>
+              <option value="IDENTIFY">IDENTIFY (Identificar)</option>
+              <option value="PROTECT">PROTECT (Proteger)</option>
+              <option value="DETECT">DETECT (Detectar)</option>
+              <option value="RESPOND">RESPOND (Responder)</option>
+              <option value="RECOVER">RECOVER (Recuperar)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="complianceMatrixContainer"></div>
+      </div>
+    </section>
+
+    <!-- ABA 3: ETAPA 3 - DIAGNÓSTICO DO DISTANCIAMENTO (GAP ANALYSIS, RISCOS & MATURIDADE CMMC) -->
+    <section id="tab-stage3" class="tab-section">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">&#128202; Sobreposição Sistemática As-Is vs. To-Be nos 18 Controles Críticos (CIS v8.1)</div>
+            <div class="card-subtitle">Identificação quantitativa da lacuna (Gap) em relação à meta selecionada (<span id="stage3IgLabel">IG2</span>)</div>
+          </div>
+        </div>
+        <div id="gapBarsContainer"></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">&#9888; Matriz de Riscos 5x5 (ISO 31000 &amp; CVSS)</div>
+              <div class="card-subtitle">Cruzamento de Probabilidade x Impacto das lacunas críticas</div>
+            </div>
+          </div>
+          <div id="riskMatrix5x5Container"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">&#127919; Avaliação de Maturidade (CMMC &amp; Grupos IG1, IG2 e IG3)</div>
+              <div class="card-subtitle">Progresso de implementação das 153 Salvaguardas dos CIS Controls v8.1</div>
+            </div>
+          </div>
+          <div id="maturityGroupsContainer"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">&#128269; Quantificação de Impacto Operacional, Financeiro/Legal (LGPD/GDPR) e Reputacional</div>
+            <div class="card-subtitle">Priorização técnica baseada em ISO 31000 e pontuação CVSS</div>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table id="risksDetailTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Cenário de Risco / Lacuna</th>
+                <th>Ref. CIS / ISO / LGPD</th>
+                <th>Prob. x Imp.</th>
+                <th>CVSS</th>
+                <th>Impacto Operacional</th>
+                <th>Impacto Financeiro / Legal</th>
+                <th>Impacto Reputacional</th>
+                <th>Prioridade</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 4: ETAPA 4 - PLANO 5W2H, ARQUITETURA DE CÓDIGO & VALIDAÇÃO EM 3 NÍVEIS -->
+    <section id="tab-stage4" class="tab-section">
+      <!-- Validação em 3 Níveis Progressivos (Seção 4.3 do Documento) -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">&#9989; Forma de Validação dos Resultados em 3 Níveis Progressivos (Seção 4.3)</div>
+            <div class="card-subtitle">
+              Verificação técnica de software, Prova de Conceito (Piloto Agentless) e Validação de Eficácia (Automatizado vs. Checklist Manual)
+            </div>
+          </div>
+          <button class="btn btn-success no-print" onclick="runValidationSuite()">&#9654; Executar Bateria de Validação (3 Níveis)</button>
+        </div>
+        <div id="validationTiersContainer"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">&#128736; Plano de Ação Executivo — Metodologia 5W2H</div>
+            <div class="card-subtitle">Roteiro escalável de remediação faseado por Grupos de Implementação (IG1 &rarr; IG2 &rarr; IG3)</div>
+          </div>
+          <div class="no-print">
+            <button class="btn btn-primary" onclick="openActionModal()">+ Nova Ação 5W2H</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table id="actionPlanTable">
+            <thead>
+              <tr>
+                <th>ID / IG</th>
+                <th>What (O Quê)</th>
+                <th>Why (Por Quê)</th>
+                <th>Where (Onde)</th>
+                <th>When (Quando)</th>
+                <th>Who (Quem)</th>
+                <th>How (Como)</th>
+                <th>How Much (Custo)</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">&#128187; Implementação da Arquitetura (Python Back-end, PostgreSQL Relacional, PowerShell &amp; SOAR)</div>
+            <div class="card-subtitle">
+              Código-fonte dos módulos da solução especificados na Seção 4.2 (Back-end Python, Banco PostgreSQL e Automação DevSecOps)
+            </div>
+          </div>
+          <div class="no-print" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <select id="automationTemplateSelector" class="select-field" onchange="renderAutomationTemplate()">
+              <option value="python_backend_connector">1. Python Back-end — Motor Central de Regras &amp; Conectores AWS/Azure</option>
+              <option value="postgresql_schema">2. PostgreSQL — Esquema Relacional de Normativas, Regras e Evidências</option>
+              <option value="powershell_cis_audit">3. PowerShell — Coletor Local As-Is (CIS 1, 1.1.2, 3)</option>
+              <option value="soar_playbook">4. Playbook SOAR — Remediação Automatizada de Gaps</option>
+            </select>
+            <button class="btn" onclick="copyAutomationCode()">&#128203; Copiar Código</button>
+          </div>
+        </div>
+        <div id="automationMetaBar" style="margin-bottom:0.75rem; font-size:0.83rem; color:var(--text-secondary);"></div>
+        <pre class="code-block" id="automationCodeViewer"></pre>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Cadastro de Ativo (Etapa 1) -->
+  <div class="modal-backdrop" id="assetModal">
+    <div class="modal-content">
+      <div class="card-header">
+        <div class="card-title">Cadastrar Novo Ativo no Inventário (As-Is)</div>
+        <button class="btn" onclick="closeAssetModal()">&#10005;</button>
+      </div>
+      <form onsubmit="saveNewAsset(event)" class="form-grid">
+        <div class="form-group">
+          <label>Nome do Ativo / Documento</label>
+          <input type="text" id="newAssetName" class="input-field" required placeholder="Ex: Norma de Controle de Acesso Privilegiado" />
+        </div>
+        <div class="form-group">
+          <label>Categoria (Incluindo CIS v8.1 - 1.1.2)</label>
+          <select id="newAssetCategory" class="select-field">
+            <option value="Documentação (CIS v8.1 - 1.1.2)">Documentação (CIS v8.1 - 1.1.2)</option>
+            <option value="Hardware">Hardware</option>
+            <option value="Hardware / Rede">Hardware / Rede</option>
+            <option value="Software / Identidade">Software / Identidade</option>
+            <option value="Dados / Software">Dados / Software (LGPD/GDPR)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Controle CIS &amp; Função NIST CSF 2.0</label>
+          <input type="text" id="newAssetCis" class="input-field" value="CIS 1 (1.1.2)" required />
+        </div>
+        <div class="form-group">
+          <label>Pilar Principal da Tríade CIA</label>
+          <select id="newAssetCia" class="select-field">
+            <option value="Confidencialidade">Confidencialidade</option>
+            <option value="Integridade">Integridade</option>
+            <option value="Disponibilidade">Disponibilidade</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Proprietário / Conector Responsável</label>
+          <input type="text" id="newAssetOwner" class="input-field" value="Governança de SI" required />
+        </div>
+        <div class="form-group">
+          <label>Score CVSS Estimado (0.0 a 10.0)</label>
+          <input type="number" step="0.1" min="0" max="10" id="newAssetCvss" class="input-field" value="5.5" required />
+        </div>
+        <div class="form-group">
+          <label>Observações Técnicas</label>
+          <input type="text" id="newAssetNotes" class="input-field" placeholder="Detalhes da coleta As-Is..." required />
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+          <button type="button" class="btn" onclick="closeAssetModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar no Inventário</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Nova Ação 5W2H (Etapa 4) -->
+  <div class="modal-backdrop" id="actionModal">
+    <div class="modal-content">
+      <div class="card-header">
+        <div class="card-title">Adicionar Ação de Remediação (Matriz 5W2H)</div>
+        <button class="btn" onclick="closeActionModal()">&#10005;</button>
+      </div>
+      <form onsubmit="saveNewAction(event)" class="form-grid">
+        <div class="form-group">
+          <label>What (O que será feito?)</label>
+          <input type="text" id="actWhat" class="input-field" required placeholder="Ex: Implementar SAST automatizado no GitLab CI" />
+        </div>
+        <div class="form-group">
+          <label>Why (Por que será feito / Qual Gap mitiga?)</label>
+          <input type="text" id="actWhy" class="input-field" required placeholder="Ex: Atender CIS 16.1 e eliminar vulnerabilidades em código" />
+        </div>
+        <div class="form-group">
+          <label>Where (Onde será aplicado?) &amp; Who (Quem é o responsável?)</label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+            <input type="text" id="actWhere" class="input-field" required placeholder="Onde: Repositórios Git" />
+            <input type="text" id="actWho" class="input-field" required placeholder="Quem: Equipe DevSecOps" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>When (Prazo) &amp; Grupo de Implementação (IG)</label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+            <input type="text" id="actWhen" class="input-field" value="Nov/2026" required />
+            <select id="actIg" class="select-field">
+              <option value="IG1">IG1</option>
+              <option value="IG2" selected>IG2</option>
+              <option value="IG3">IG3</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>How (Como será executado?) &amp; How Much (Custo Estimado)</label>
+          <div style="display:grid; grid-template-columns:2fr 1fr; gap:0.5rem;">
+            <input type="text" id="actHow" class="input-field" required placeholder="Como: Pipeline Semgrep / SonarQube" />
+            <input type="text" id="actHowMuch" class="input-field" value="R$ 0,00 (Open Source)" required />
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+          <button type="button" class="btn" onclick="closeActionModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Adicionar ao Plano 5W2H</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Rodapé -->
+  <footer class="app-footer">
+    <div>
+      <strong>NEXO Prototype v2.0</strong> &bull; <em>Automatização de Gap Analysis em Sistemas de Gestão de Segurança</em> (Davi Freire Zanatta &amp; Luiz Alberto Ferreira Gomes — PUC Minas Poços de Caldas, 2026). Normas: CIS Controls v8.1, ISO/IEC 27001:2022, ISO/IEC 27002:2022, NIST CSF 2.0, ISO 31000, LGPD, GDPR e ISO 45001.
+    </div>
+    <div>
+      <button class="btn no-print" style="padding:0.2rem 0.6rem; font-size:0.74rem;" onclick="resetPrototypeData()">Restaurar Dados Padrão</button>
+    </div>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

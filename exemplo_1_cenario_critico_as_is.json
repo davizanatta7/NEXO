@@ -1,0 +1,120 @@
+{
+  "scenarioName": "Cenário 1 — Diagnóstico Inicial (As-Is Crítico / Pré-Remediação 5W2H)",
+  "exportedAt": "2026-10-15T10:30:00Z",
+  "institution": "PUC Minas - Campus Poços de Caldas | Ciência da Computação",
+  "authors": "Davi Freire Zanatta & Luiz Alberto Ferreira Gomes",
+  "targetIG": "IG2",
+  "summaryMetrics": {
+    "avgAsIs": 38,
+    "avgToBe": 92,
+    "avgGap": 54,
+    "cmmcLevel": "Nível 1 Incompleto (Risco Alto)",
+    "totalAssets": 9,
+    "docAssets_1_1_2": 2,
+    "falsePositiveRate": "0.0%"
+  },
+  "apiConnectors": [
+    {
+      "id": "CONN-AWS",
+      "provider": "Amazon Web Services (AWS)",
+      "service": "AWS Audit Manager & SecurityHub API",
+      "status": "Conectado (Alertas Críticos)",
+      "latencyMs": 122,
+      "evidencesCollected": 45,
+      "lastSync": "15/10/2026 10:28:12"
+    },
+    {
+      "id": "CONN-AZURE",
+      "provider": "Microsoft Azure",
+      "service": "Microsoft Defender for Cloud API",
+      "status": "Conectado (Gaps de Hardening)",
+      "latencyMs": 139,
+      "evidencesCollected": 41,
+      "lastSync": "15/10/2026 10:29:05"
+    },
+    {
+      "id": "CONN-IAM",
+      "provider": "Identidade Híbrida & CMDB",
+      "service": "Entra ID / Active Directory & Docs 1.1.2",
+      "status": "Conectado (Falha MFA e Docs)",
+      "latencyMs": 95,
+      "evidencesCollected": 31,
+      "lastSync": "15/10/2026 10:29:44"
+    }
+  ],
+  "cisControlsScores": [
+    { "id": 1, "code": "CIS 01", "asIsScore": 45, "status": "Gap Documentação 1.1.2 (45%)" },
+    { "id": 2, "code": "CIS 02", "asIsScore": 40, "status": "Sem Allowlisting (40%)" },
+    { "id": 3, "code": "CIS 03", "asIsScore": 28, "status": "Sem Criptografia KMS/LGPD (28%)" },
+    { "id": 4, "code": "CIS 04", "asIsScore": 35, "status": "Sem Baseline CIS Benchmark (35%)" },
+    { "id": 5, "code": "CIS 05", "asIsScore": 48, "status": "Contas Admin Compartilhadas (48%)" },
+    { "id": 6, "code": "CIS 06", "asIsScore": 30, "status": "Ausência de MFA Admin (30%)" },
+    { "id": 7, "code": "CIS 07", "asIsScore": 35, "status": "Patches Manuais Atrasados (35%)" },
+    { "id": 8, "code": "CIS 08", "asIsScore": 25, "status": "Logs Descentralizados 15d (25%)" },
+    { "id": 9, "code": "CIS 09", "asIsScore": 55, "status": "DMARC em Modo None (55%)" },
+    { "id": 10, "code": "CIS 10", "asIsScore": 60, "status": "Antivírus Básico sem EDR (60%)" },
+    { "id": 11, "code": "CIS 11", "asIsScore": 42, "status": "Backup sem Imutabilidade/Teste (42%)" },
+    { "id": 12, "code": "CIS 12", "asIsScore": 40, "status": "Rede Plana sem VLAN Restrita (40%)" },
+    { "id": 13, "code": "CIS 13", "asIsScore": 25, "status": "Sem IDS/IPS Ativo (25%)" },
+    { "id": 14, "code": "CIS 14", "asIsScore": 35, "status": "Sem Treinamento de Phishing (35%)" },
+    { "id": 15, "code": "CIS 15", "asIsScore": 30, "status": "Fornecedores sem Cláusula LGPD (30%)" },
+    { "id": 16, "code": "CIS 16", "asIsScore": 25, "status": "Pipelines sem SAST/DAST (25%)" },
+    { "id": 17, "code": "CIS 17", "asIsScore": 30, "status": "Sem Playbook SOAR / PRI Defasado (30%)" },
+    { "id": 18, "code": "CIS 18", "asIsScore": 20, "status": "Pentest Não Executado (20%)" }
+  ],
+  "assets": [
+    {
+      "id": "AST-001",
+      "name": "Active Directory Corporativo (6 Contas Domain Admin sem MFA)",
+      "category": "Software / Identidade",
+      "cisControl": "CIS 05 / CIS 06 (6.5)",
+      "nistFunction": "PROTECT",
+      "ciaImpact": "Confidencialidade",
+      "owner": "IAM Graph API",
+      "criticality": "Crítica",
+      "status": "Não Conforme (Gap Crítico)",
+      "cvss": 9.4,
+      "notes": "Coleta agentless detectou 6 contas privilegiadas sem segundo fator de autenticação."
+    },
+    {
+      "id": "AST-002",
+      "name": "Política Geral de Segurança (PGSI) e Plano de Resposta (Sem Revisão há 2 Anos)",
+      "category": "Documentação (CIS v8.1 - 1.1.2)",
+      "cisControl": "CIS 01 (1.1.2) / GOVERN",
+      "nistFunction": "GOVERN",
+      "ciaImpact": "Integridade",
+      "owner": "Governança de SI",
+      "criticality": "Alta",
+      "status": "Desatualizado (>730 dias)",
+      "cvss": 7.5,
+      "notes": "Violação direta da Salvaguarda 1.1.2 introduzida no CIS Controls v8.1."
+    },
+    {
+      "id": "AST-003",
+      "name": "Banco de Dados Clientes & Financeiro (Sem Criptografia TDE/KMS e Sem RoPA)",
+      "category": "Dados / Software",
+      "cisControl": "CIS 03 (3.1 / 3.11)",
+      "nistFunction": "PROTECT",
+      "ciaImpact": "Confidencialidade",
+      "owner": "AWS Audit Manager API",
+      "criticality": "Crítica",
+      "status": "Vulnerável (Exposição LGPD)",
+      "cvss": 8.9,
+      "notes": "Volumes RDS sem criptografia em repouso e ausência de inventário RoPA."
+    },
+    {
+      "id": "AST-004",
+      "name": "Servidores de Aplicação Linux/Windows (38% Sem Hardening CIS Benchmark)",
+      "category": "Hardware / Nuvem",
+      "cisControl": "CIS 04 (4.1) / CIS 07",
+      "nistFunction": "PROTECT",
+      "ciaImpact": "Integridade",
+      "owner": "Azure Defender API",
+      "criticality": "Alta",
+      "status": "Drift de Configuração",
+      "cvss": 7.8,
+      "notes": "SSH root habilitado e serviços legados ativos em produção."
+    }
+  ]
+}
+
