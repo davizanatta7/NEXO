@@ -54,6 +54,9 @@
     <button class="nav-tab active" data-tab="tab-overview" onclick="switchTab('tab-overview')">
       <span class="step-pill">Visão Geral</span> Dashboard, Grafo de Risco &amp; Arquitetura
     </button>
+    <button class="nav-tab" data-tab="tab-questionnaire" onclick="switchTab('tab-questionnaire')">
+      <span class="step-pill" style="background:#8b5cf6; color:#fff;">Questionário As-Is</span> Levantamento da Empresa
+    </button>
     <button class="nav-tab" data-tab="tab-stage1" onclick="switchTab('tab-stage1')">
       <span class="step-pill">Etapa 1</span> Coleta Agentless (AWS/Azure) &amp; Ativos (1.1.2)
     </button>
@@ -155,6 +158,171 @@
             <tbody></tbody>
           </table>
         </div>
+      </div>
+    </section>
+
+    <!-- ABA QUESTIONÁRIO AS-IS: LEVANTAMENTO DA EMPRESA -->
+    <section id="tab-questionnaire" class="tab-section">
+      <!-- 1. Card de Identificação da Empresa -->
+      <div class="card" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(49, 46, 129, 0.8)); margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <div style="font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-purple); font-weight: 700;">
+              Coleta de Dados de Entrada &bull; Levantamento As-Is
+            </div>
+            <h2 style="font-size: 1.35rem; color: #fff; margin: 0.25rem 0 0.4rem 0;">
+              📋 Questionário de Diagnóstico de Segurança da Informação
+            </h2>
+            <p style="font-size: 0.84rem; color: var(--text-secondary); max-width: 820px; margin: 0;">
+              Preencha os dados da organização e avalie o nível de implementação atual em cada um dos <strong>18 Controles Críticos do CIS Controls v8.1</strong>. As respostas fornecidas alimentarão automaticamente a análise de lacunas (<em>Gap Analysis</em>), o cálculo de maturidade CMMC, a matriz de riscos e a geração do plano de ação 5W2H.
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="applyQuestionnaireToDiagnosis()" style="background: linear-gradient(135deg, #10b981, #059669); border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);" title="Atualizar todos os gráficos, gaps e planos com os dados deste questionário">
+              ⚡ Aplicar Respostas ao Diagnóstico NEXO
+            </button>
+            <button class="btn" onclick="fillRealisticQuestionnaireExample()" style="background: rgba(139, 92, 246, 0.2); border-color: #8b5cf6; color: #c4b5fd;" title="Preencher com um cenário prático realista para demonstração rápida">
+              ✨ Preencher Exemplo Realista
+            </button>
+            <button class="btn" onclick="exportQuestionnaireJSON()" title="Exportar as respostas deste questionário em arquivo JSON">
+              💾 Exportar Respostas (JSON)
+            </button>
+            <input type="file" id="qFileInput" accept=".json" style="display:none;" onchange="importQuestionnaireJSON(event)" />
+            <button class="btn" onclick="document.getElementById('qFileInput').click()" title="Importar respostas de um arquivo JSON salvo anteriormente">
+              📂 Carregar Respostas (JSON)
+            </button>
+            <button class="btn" onclick="resetQuestionnaire()" style="color: #f87171;" title="Zerar todas as respostas do formulário">
+              🔄 Limpar
+            </button>
+          </div>
+        </div>
+
+        <!-- Formulário de Identificação da Organização -->
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem 1.2rem; margin-top: 0.5rem;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em;">
+            🏢 Dados Cadastrais da Empresa Auditada
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+            <div>
+              <label style="font-size: 0.76rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Razão Social / Nome da Empresa:</label>
+              <input type="text" id="qCompanyName" class="input-field" style="width: 100%;" placeholder="Ex: Nexus Tecnologia & Logística S/A" oninput="saveQuestionnaireMeta()" />
+            </div>
+            <div>
+              <label style="font-size: 0.76rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Setor de Atuação:</label>
+              <select id="qCompanySector" class="select-field" style="width: 100%;" onchange="saveQuestionnaireMeta()">
+                <option value="Tecnologia / Software (SaaS)">Tecnologia / Software (SaaS)</option>
+                <option value="Serviços Financeiros / Fintech">Serviços Financeiros / Fintech</option>
+                <option value="Saúde / Hospitais / Laboratórios">Saúde / Hospitais / Laboratórios</option>
+                <option value="Varejo / E-commerce / Logística">Varejo / E-commerce / Logística</option>
+                <option value="Indústria / Manufatura">Indústria / Manufatura</option>
+                <option value="Educação / Governo / Terceiro Setor">Educação / Governo / Terceiro Setor</option>
+                <option value="Outro">Outro Ramo</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 0.76rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Porte da Infraestrutura:</label>
+              <select id="qCompanySize" class="select-field" style="width: 100%;" onchange="saveQuestionnaireMeta()">
+                <option value="Pequeno (1 a 50 colaboradores / nuvem híbrida)">Pequeno (1 a 50 colaboradores / nuvem híbrida)</option>
+                <option value="Médio (51 a 250 colaboradores / multi-cloud)" selected>Médio (51 a 250 colaboradores / multi-cloud)</option>
+                <option value="Grande (251 a 1.000 colaboradores / data centers)">Grande (251 a 1.000 colaboradores / data centers)</option>
+                <option value="Enterprise (Mais de 1.000 colaboradores)">Enterprise (Mais de 1.000 colaboradores)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 0.76rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Responsável / Auditor:</label>
+              <input type="text" id="qAssessorName" class="input-field" style="width: 100%;" placeholder="Ex: Davi Zanatta & Equipe de SecOps" oninput="saveQuestionnaireMeta()" />
+            </div>
+            <div>
+              <label style="font-size: 0.76rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Data da Avaliação:</label>
+              <input type="date" id="qAssessmentDate" class="input-field" style="width: 100%;" onchange="saveQuestionnaireMeta()" />
+            </div>
+            <div>
+              <label style="font-size: 0.76rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Meta To-Be Alvo (CIS v8.1):</label>
+              <select id="qTargetIg" class="select-field" style="width: 100%;" onchange="changeQuestionnaireTargetIg(this.value)">
+                <option value="IG1">IG1 — Higiene Cibernética Essencial</option>
+                <option value="IG2" selected>IG2 — Risco Moderado / Nuvem Híbrida</option>
+                <option value="IG3">IG3 — Alta Maturidade / Missão Crítica</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Painel de Resumo em Tempo Real do Questionário -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="card" style="display: flex; align-items: center; gap: 1rem; padding: 1.1rem;">
+          <div style="width: 52px; height: 52px; border-radius: 12px; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: var(--accent-blue);">
+            📊
+          </div>
+          <div>
+            <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700;">Score As-Is Declarado</div>
+            <div id="qLiveScoreVal" style="font-size: 1.7rem; font-weight: 800; color: var(--accent-blue);">0%</div>
+            <div id="qLiveScoreSub" style="font-size: 0.72rem; color: var(--text-secondary);">Média nos 18 controles</div>
+          </div>
+        </div>
+
+        <div class="card" style="display: flex; align-items: center; gap: 1rem; padding: 1.1rem;">
+          <div style="width: 52px; height: 52px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: var(--accent-emerald);">
+            🎯
+          </div>
+          <div>
+            <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700;">Meta To-Be Selecionada</div>
+            <div id="qLiveTargetVal" style="font-size: 1.7rem; font-weight: 800; color: var(--accent-emerald);">92%</div>
+            <div id="qLiveTargetSub" style="font-size: 0.72rem; color: var(--text-secondary);">Grupo de Implementação IG2</div>
+          </div>
+        </div>
+
+        <div class="card" style="display: flex; align-items: center; gap: 1rem; padding: 1.1rem;">
+          <div style="width: 52px; height: 52px; border-radius: 12px; background: rgba(244, 63, 94, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: var(--accent-rose);">
+            ⚠️
+          </div>
+          <div>
+            <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700;">Lacuna Estimada (Gap)</div>
+            <div id="qLiveGapVal" style="font-size: 1.7rem; font-weight: 800; color: var(--accent-rose);">92%</div>
+            <div id="qLiveGapSub" style="font-size: 0.72rem; color: var(--text-secondary);">Distanciamento da meta</div>
+          </div>
+        </div>
+
+        <div class="card" style="display: flex; align-items: center; gap: 1rem; padding: 1.1rem;">
+          <div style="width: 52px; height: 52px; border-radius: 12px; background: rgba(168, 85, 247, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: var(--accent-purple);">
+            🛡️
+          </div>
+          <div>
+            <div style="font-size: 0.74rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700;">Maturidade CMMC</div>
+            <div id="qLiveCmmcVal" style="font-size: 1.15rem; font-weight: 800; color: var(--accent-purple); margin-top: 0.2rem;">Nível 1 (Básico)</div>
+            <div id="qLiveCmmcSub" style="font-size: 0.72rem; color: var(--text-secondary);">Avaliação preliminar</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Barra de Filtros por Função / Categoria -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;" id="qFilterButtonGroup">
+          <button class="btn active" data-qfilter="ALL" onclick="filterQuestionnaire('ALL')">Todos (18)</button>
+          <button class="btn" data-qfilter="IDENTIFY_GOVERN" onclick="filterQuestionnaire('IDENTIFY_GOVERN')">Identify &amp; Govern (1.1.2)</button>
+          <button class="btn" data-qfilter="PROTECT" onclick="filterQuestionnaire('PROTECT')">Protect (MFA, Cripto &amp; Hardening)</button>
+          <button class="btn" data-qfilter="DETECT" onclick="filterQuestionnaire('DETECT')">Detect (Logs &amp; SIEM)</button>
+          <button class="btn" data-qfilter="RESPOND_RECOVER" onclick="filterQuestionnaire('RESPOND_RECOVER')">Respond &amp; Recover (Backup &amp; SOAR)</button>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+          <span id="qAnsweredCount">0</span> de 18 controles avaliados
+        </div>
+      </div>
+
+      <!-- 4. Container Dinâmico das 18 Perguntas do CIS Controls v8.1 -->
+      <div id="questionnaireItemsContainer" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+
+      <!-- 5. Rodapé da Seção com Botão de Aplicação -->
+      <div class="card" style="margin-top: 1.5rem; text-align: center; background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(16, 185, 129, 0.15)); padding: 2rem;">
+        <h3 style="color: #fff; margin-bottom: 0.5rem; font-size: 1.25rem;">
+          Pronto para processar o diagnóstico da empresa?
+        </h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); max-width: 650px; margin: 0 auto 1.2rem auto;">
+          Ao clicar abaixo, o motor de regras do NEXO recalculará instantaneamente todos os KPIs, atualizará a tabela de <em>Gap Analysis</em>, o grafo de risco e estruturará os planos de ação 5W2H específicos para sanar cada vulnerabilidade identificada.
+        </p>
+        <button class="btn btn-primary" onclick="applyQuestionnaireToDiagnosis()" style="padding: 0.75rem 2rem; font-size: 0.95rem; background: linear-gradient(135deg, #10b981, #059669); border: none; font-weight: 700; box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);">
+          ⚡ Aplicar Respostas e Gerar Gap Analysis Completo
+        </button>
       </div>
     </section>
 

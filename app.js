@@ -857,6 +857,596 @@ function exportDiagnosticJSON() {
   URL.revokeObjectURL(url);
 }
 
+function showNexoToast(htmlContent) {
+  const toast = document.getElementById("nexoToast");
+  if (!toast) return;
+  toast.innerHTML = htmlContent;
+  toast.style.display = "block";
+  clearTimeout(window._nexoToastTimer);
+  window._nexoToastTimer = setTimeout(() => {
+    toast.style.display = "none";
+  }, 5000);
+}
+
+// ============================================================================
+// SEÇÃO DO QUESTIONÁRIO AS-IS (LEVANTAMENTO DA EMPRESA)
+// ============================================================================
+let qCurrentFilter = "ALL";
+
+function initQuestionnaireState() {
+  if (!appState.companyQuestionnaire) {
+    appState.companyQuestionnaire = JSON.parse(JSON.stringify(NEXO_DEFAULT_DATA.companyQuestionnaire || {}));
+  }
+  if (!appState.companyQuestionnaire.answers) {
+    appState.companyQuestionnaire.answers = {};
+  }
+  // Se ainda não houver respostas salvas para algum controle, sincroniza com o asIsScore atual
+  appState.cisControls.forEach((ctrl) => {
+    if (!appState.companyQuestionnaire.answers[ctrl.id]) {
+      appState.companyQuestionnaire.answers[ctrl.id] = {
+        score: ctrl.asIsScore,
+        obs: ""
+      };
+    }
+  });
+}
+
+function saveQuestionnaireMeta() {
+  initQuestionnaireState();
+  const q = appState.companyQuestionnaire;
+  const nameInput = document.getElementById("qCompanyName");
+  const sectorInput = document.getElementById("qCompanySector");
+  const sizeInput = document.getElementById("qCompanySize");
+  const assessorInput = document.getElementById("qAssessorName");
+  const dateInput = document.getElementById("qAssessmentDate");
+
+  if (nameInput) q.companyName = nameInput.value;
+  if (sectorInput) q.sector = sectorInput.value;
+  if (sizeInput) q.size = sizeInput.value;
+  if (assessorInput) q.assessor = assessorInput.value;
+  if (dateInput) q.assessmentDate = dateInput.value;
+
+  saveState();
+}
+
+function changeQuestionnaireTargetIg(ig) {
+  initQuestionnaireState();
+  appState.companyQuestionnaire.targetIg = ig;
+  changeTargetIG(ig);
+  renderQuestionnaireTab();
+}
+
+function filterQuestionnaire(category) {
+  qCurrentFilter = category;
+  document.querySelectorAll("#qFilterButtonGroup button").forEach((btn) => {
+    btn.classList.toggle("active", btn.getAttribute("data-qfilter") === category);
+  });
+  renderQuestionnaireItems();
+}
+
+function renderQuestionnaireTab() {
+  initQuestionnaireState();
+  const q = appState.companyQuestionnaire;
+
+  // Atualizar campos do formulário cadastral
+  const nameInput = document.getElementById("qCompanyName");
+  const sectorInput = document.getElementById("qCompanySector");
+  const sizeInput = document.getElementById("qCompanySize");
+  const assessorInput = document.getElementById("qAssessorName");
+  const dateInput = document.getElementById("qAssessmentDate");
+  const igInput = document.getElementById("qTargetIg");
+
+  if (nameInput && !nameInput.matches(":focus")) nameInput.value = q.companyName || "";
+  if (sectorInput) sectorInput.value = q.sector || "Tecnologia / Software (SaaS)";
+  if (sizeInput) sizeInput.value = q.size || "Médio (51 a 250 colaboradores / multi-cloud)";
+  if (assessorInput && !assessorInput.matches(":focus")) assessorInput.value = q.assessor || "";
+  if (dateInput) dateInput.value = q.assessmentDate || new Date().toISOString().split("T")[0];
+  if (igInput) igInput.value = appState.metadata.targetIG;
+
+  // Calcular métricas ao vivo do questionário
+  let totalScore = 0;
+  let answeredCount = 0;
+
+  appState.cisControls.forEach((c) => {
+    const ans = q.answers[c.id];
+    const score = ans ? ans.score : 0;
+    totalScore += score;
+    if (ans && ans.score > 0) answeredCount++;
+  });
+
+  const avgScore = Math.round(totalScore / appState.cisControls.length);
+  const targetMetrics = computeMetrics();
+  const gap = Math.max(0, targetMetrics.avgToBe - avgScore);
+
+  // Nível CMMC estimado
+  let cmmcLevel = "Nível 1 (Básico / Higiene)";
+  let cmmcColor = "var(--accent-amber)";
+  if (avgScore >= 85) {
+    cmmcLevel = "Nível 3 (Avançado / Contínuo)";
+    cmmcColor = "var(--accent-emerald)";
+  } else if (avgScore >= 60) {
+    cmmcLevel = "Nível 2 (Gerenciado / Documentado)";
+    cmmcColor = "var(--accent-blue)";
+  } else if (avgScore < 40) {
+    cmmcLevel = "Nível 1 Incompleto (Risco Alto)";
+    cmmcColor = "var(--accent-rose)";
+  }
+
+  const liveScoreEl = document.getElementById("qLiveScoreVal");
+  const liveTargetEl = document.getElementById("qLiveTargetVal");
+  const liveGapEl = document.getElementById("qLiveGapVal");
+  const liveCmmcEl = document.getElementById("qLiveCmmcVal");
+  const answeredCountEl = document.getElementById("qAnsweredCount");
+
+  if (liveScoreEl) liveScoreEl.textContent = `${avgScore}%`;
+  if (liveTargetEl) liveTargetEl.textContent = `${targetMetrics.avgToBe}%`;
+  if (liveGapEl) liveGapEl.textContent = `${gap}%`;
+  if (liveCmmcEl) {
+    liveCmmcEl.textContent = cmmcLevel;
+    liveCmmcEl.style.color = cmmcColor;
+  }
+  if (answeredCountEl) answeredCountEl.textContent = answeredCount;
+
+  renderQuestionnaireItems();
+}
+
+function renderQuestionnaireItems() {
+  const container = document.getElementById("questionnaireItemsContainer");
+  if (!container) return;
+
+  const q = appState.companyQuestionnaire;
+  const questionsList = (typeof NEXO_QUESTIONNAIRE_QUESTIONS !== "undefined") ? NEXO_QUESTIONNAIRE_QUESTIONS : [];
+
+  const filtered = questionsList.filter((item) => {
+    if (qCurrentFilter === "ALL") return true;
+    return item.nistCategory === qCurrentFilter;
+  });
+
+  container.innerHTML = filtered.map((item) => {
+    const ctrl = appState.cisControls.find((c) => c.id === item.controlId) || {};
+    const ans = q.answers[item.controlId] || { score: ctrl.asIsScore || 0, obs: "" };
+    const currentScore = ans.score;
+
+    let scoreColor = "var(--accent-rose)";
+    let scoreBadge = "Gap Crítico";
+    if (currentScore >= 85) { scoreColor = "var(--accent-emerald)"; scoreBadge = "Implementado"; }
+    else if (currentScore >= 50) { scoreColor = "var(--accent-blue)"; scoreBadge = "Parcial"; }
+    else if (currentScore >= 25) { scoreColor = "var(--accent-amber)"; scoreBadge = "Inicial / Em Andamento"; }
+
+    const isV81Highlight = item.controlId === 1;
+
+    return `
+      <div class="q-card" id="qcard-${item.controlId}">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.6rem;">
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <span class="badge badge-blue" style="font-size: 0.82rem; padding: 0.3rem 0.6rem; font-weight: 800;">${item.code}</span>
+            <strong style="color: #fff; font-size: 1rem;">${item.title}</strong>
+            ${isV81Highlight ? '<span class="badge badge-purple">Salvaguarda 1.1.2 Docs (Novidade CIS v8.1)</span>' : ''}
+            <span class="badge" style="background: rgba(15,23,42,0.8); border: 1px solid var(--border-color); font-size: 0.72rem; color: var(--text-secondary);">${ctrl.nistFunction || 'PROTECT'}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <span class="badge" style="background: rgba(15,23,42,0.9); border: 1px solid ${scoreColor}; color: ${scoreColor}; font-weight: 700;">
+              ${scoreBadge} (${currentScore}%)
+            </span>
+          </div>
+        </div>
+
+        <div style="background: rgba(15, 23, 42, 0.45); border-left: 3px solid var(--accent-purple); padding: 0.65rem 0.9rem; border-radius: 4px; margin-bottom: 0.8rem;">
+          <div style="font-size: 0.88rem; color: #f1f5f9; font-weight: 600; line-height: 1.45;">
+            ❓ ${item.question}
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.3rem;">
+            💡 <em>${item.guide}</em>
+          </div>
+        </div>
+
+        <div style="font-size: 0.73rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+          <strong>Normas Mapeadas:</strong> <code style="color: var(--accent-blue);">${item.normatives}</code>
+        </div>
+
+        <!-- Seletor de Opções (0%, 25%, 50%, 75%, 100%) -->
+        <div class="q-options-grid">
+          <button type="button" class="q-option-btn ${currentScore === 0 ? 'selected-0' : ''}" onclick="selectQuestionnaireOption(${item.controlId}, 0)">
+            <span style="font-weight: 700; color: #f43f5e;">❌ 0% — Inexistente</span>
+            <span>Não implementado / Sem controle formal</span>
+          </button>
+          <button type="button" class="q-option-btn ${currentScore === 25 ? 'selected-25' : ''}" onclick="selectQuestionnaireOption(${item.controlId}, 25)">
+            <span style="font-weight: 700; color: #f59e0b;">⚠️ 25% — Inicial</span>
+            <span>Planilhas manuais ou não padronizado</span>
+          </button>
+          <button type="button" class="q-option-btn ${currentScore === 50 ? 'selected-50' : ''}" onclick="selectQuestionnaireOption(${item.controlId}, 50)">
+            <span style="font-weight: 700; color: #38bdf8;">🔄 50% — Parcial</span>
+            <span>Implementado em parte dos ativos</span>
+          </button>
+          <button type="button" class="q-option-btn ${currentScore === 75 ? 'selected-75' : ''}" onclick="selectQuestionnaireOption(${item.controlId}, 75)">
+            <span style="font-weight: 700; color: #2dd4bf;">📈 75% — Majoritário</span>
+            <span>Ativo na maior parte da infraestrutura</span>
+          </button>
+          <button type="button" class="q-option-btn ${currentScore === 100 ? 'selected-100' : ''}" onclick="selectQuestionnaireOption(${item.controlId}, 100)">
+            <span style="font-weight: 700; color: #10b981;">✅ 100% — Conforme</span>
+            <span>Totalmente implementado e automatizado</span>
+          </button>
+        </div>
+
+        <!-- Barra de Progresso do Controle -->
+        <div class="q-progress-bar-container">
+          <div class="q-progress-bar-fill" style="width: ${currentScore}%; background: ${scoreColor};"></div>
+        </div>
+
+        <!-- Campo de Evidências / Observações -->
+        <div style="margin-top: 0.75rem;">
+          <input type="text" class="input-field" style="width: 100%; font-size: 0.78rem; padding: 0.4rem 0.7rem;" 
+            placeholder="Evidência / Justificativa da empresa (ex: link de política, print, ferramenta utilizada, chamado)" 
+            value="${escapeHtml(ans.obs || '')}" 
+            onchange="updateQuestionnaireObs(${item.controlId}, this.value)" />
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function escapeHtml(str) {
+  return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function selectQuestionnaireOption(controlId, score) {
+  initQuestionnaireState();
+  if (!appState.companyQuestionnaire.answers[controlId]) {
+    appState.companyQuestionnaire.answers[controlId] = { score: 0, obs: "" };
+  }
+  appState.companyQuestionnaire.answers[controlId].score = score;
+  saveState();
+  renderQuestionnaireTab();
+}
+
+function updateQuestionnaireObs(controlId, obsText) {
+  initQuestionnaireState();
+  if (!appState.companyQuestionnaire.answers[controlId]) {
+    appState.companyQuestionnaire.answers[controlId] = { score: 0, obs: "" };
+  }
+  appState.companyQuestionnaire.answers[controlId].obs = obsText;
+  saveState();
+}
+
+function applyQuestionnaireToDiagnosis() {
+  initQuestionnaireState();
+  const q = appState.companyQuestionnaire;
+  saveQuestionnaireMeta();
+
+  let updatedCount = 0;
+  appState.cisControls.forEach((ctrl) => {
+    const ans = q.answers[ctrl.id];
+    if (ans && typeof ans.score === "number") {
+      ctrl.asIsScore = ans.score;
+      if (ans.score >= 85) {
+        ctrl.status = `Implementado (${ans.score}%)`;
+      } else if (ans.score >= 50) {
+        ctrl.status = `Parcial (${ans.score}%)`;
+      } else {
+        ctrl.status = `Gap Crítico (${ans.score}%)`;
+      }
+
+      // Sincronizar salvaguardas
+      if (Array.isArray(ctrl.keySafeguards)) {
+        ctrl.keySafeguards.forEach((sg, idx) => {
+          if (ans.score >= 85) sg.status = "Implementado";
+          else if (ans.score >= 50) sg.status = idx === 0 ? "Implementado" : "Parcial";
+          else if (ans.score >= 25) sg.status = idx === 0 ? "Parcial" : "Não Implementado";
+          else sg.status = "Não Implementado";
+        });
+      }
+      updatedCount++;
+    }
+  });
+
+  saveState();
+  renderAll();
+
+  const metrics = computeMetrics();
+  showNexoToast(`
+    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
+      <span style="font-size:1.3rem;">⚡</span>
+      <strong style="color:var(--accent-emerald); font-size:0.95rem;">Respostas Aplicadas ao Diagnóstico!</strong>
+    </div>
+    <div style="font-size:0.82rem; color:var(--text-primary); margin-bottom:0.35rem;">
+      <strong>Empresa:</strong> ${q.companyName || "Organização Avaliada"}
+    </div>
+    <div style="font-size:0.75rem; color:var(--text-secondary); line-height:1.4;">
+      • Aderência Média As-Is: <strong style="color:var(--accent-blue);">${metrics.avgAsIs}%</strong><br/>
+      • Meta To-Be: <strong>${metrics.ig}</strong> (${metrics.avgToBe}%) | Gap Calculado: <strong style="color:var(--accent-rose);">${metrics.avgGap}%</strong><br/>
+      • <strong>${updatedCount}</strong> controles CIS v8.1 e salvaguardas atualizados.
+    </div>
+  `);
+
+  switchTab("tab-overview");
+}
+
+function fillRealisticQuestionnaireExample() {
+  initQuestionnaireState();
+  const q = appState.companyQuestionnaire;
+  q.companyName = "TechCloud Logística & Pagamentos S/A";
+  q.sector = "Tecnologia / Software (SaaS)";
+  q.size = "Médio (51 a 250 colaboradores / multi-cloud)";
+  q.assessor = "Davi Freire Zanatta & Luiz Alberto Ferreira Gomes (SecOps)";
+  q.assessmentDate = "2026-11-12";
+  q.targetIg = "IG2";
+
+  const realisticValues = {
+    1: { score: 50, obs: "Inventário físico em planilha e Active Directory; documentação 1.1.2 desatualizada há 190 dias." },
+    2: { score: 50, obs: "Softwares rastreados por inventário do Windows Defender; sem allowlisting formal." },
+    3: { score: 25, obs: "Banco de produção criptografado; banco de homologação sem KMS/TDE e sem RoPA LGPD." },
+    4: { score: 50, obs: "GPOs aplicadas em estações; servidores Linux em nuvem sem baseline CIS Benchmark 4.1." },
+    5: { score: 50, obs: "Contas de administrador compartilhadas entre analistas de infraestrutura." },
+    6: { score: 25, obs: "MFA obrigatório apenas em e-mail e VPN; 4 contas de Domain Admin sem MFA imposto (CIS 6.5)." },
+    7: { score: 50, obs: "Varredura de vulnerabilidades executada semestralmente; patches críticos atrasados." },
+    8: { score: 25, obs: "Logs dispersos nos servidores locais com retenção de apenas 15 dias; sem SIEM centralizado." },
+    9: { score: 75, obs: "SPF e DKIM ativos; DMARC em modo monitoramento (p=none); DNS com filtro Cloudflare." },
+    10: { score: 75, obs: "Microsoft Defender for Endpoint com proteção em tempo real em 90% das máquinas." },
+    11: { score: 50, obs: "Backup diário automatizado em storage externo; testes de restauração não realizados em 2026." },
+    12: { score: 50, obs: "VPC com regras de firewall na nuvem, porém rede interna de escritório plana." },
+    13: { score: 25, obs: "Sem IDS/IPS ativo no tráfego interno; apenas firewall de borda." },
+    14: { score: 50, obs: "Treinamento admissional realizado; sem testes contínuos de phishing." },
+    15: { score: 25, obs: "Contratos de fornecedores de cloud sem análise de DPA ou auditoria de conformidade LGPD." },
+    16: { score: 50, obs: "Linters e testes automatizados no GitHub Actions; SAST/DAST não bloqueiam o pipeline." },
+    17: { score: 25, obs: "Plano de Resposta a Incidentes básico em PDF; sem equipe formal de CSIRT e sem playbook SOAR." },
+    18: { score: 0, obs: "Nenhum teste de invasão (pentest) executado nos últimos 24 meses." }
+  };
+
+  q.answers = realisticValues;
+  saveState();
+  renderQuestionnaireTab();
+
+  showNexoToast(`
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      <span style="font-size:1.25rem;">✨</span>
+      <div>
+        <strong style="color:var(--accent-purple);">Exemplo Realista Preenchido!</strong><br/>
+        <span style="font-size:0.75rem; color:var(--text-secondary);">Clique em <strong>'⚡ Aplicar Respostas'</strong> para gerar a Gap Analysis.</span>
+      </div>
+    </div>
+  `);
+}
+
+function resetQuestionnaire() {
+  if (!confirm("Deseja realmente zerar todas as respostas do questionário?")) return;
+  initQuestionnaireState();
+  appState.cisControls.forEach((c) => {
+    appState.companyQuestionnaire.answers[c.id] = { score: 0, obs: "" };
+  });
+  saveState();
+  renderQuestionnaireTab();
+  showNexoToast(`
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      <span style="font-size:1.2rem;">🔄</span>
+      <strong style="color:var(--accent-blue);">Questionário Zerado com Sucesso.</strong>
+    </div>
+  `);
+}
+
+function exportQuestionnaireJSON() {
+  initQuestionnaireState();
+  saveQuestionnaireMeta();
+  const q = appState.companyQuestionnaire;
+  const metrics = computeMetrics();
+
+  const payload = {
+    documentType: "NEXO_COMPANY_QUESTIONNAIRE_AS_IS",
+    exportedAt: new Date().toISOString(),
+    organization: {
+      companyName: q.companyName,
+      sector: q.sector,
+      size: q.size,
+      assessor: q.assessor,
+      assessmentDate: q.assessmentDate,
+      targetIg: appState.metadata.targetIG
+    },
+    summaryScore: {
+      averageScoreAsIs: metrics.avgAsIs,
+      targetScoreToBe: metrics.avgToBe,
+      gapAverage: metrics.avgGap
+    },
+    answers: q.answers,
+    controlsSummary: appState.cisControls.map((c) => ({
+      id: c.id,
+      code: c.code,
+      title: c.title,
+      declaredScore: q.answers[c.id]?.score || 0,
+      evidenceObs: q.answers[c.id]?.obs || ""
+    }))
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const safeName = (q.companyName || "Empresa").replace(/[^a-zA-Z0-9]/g, "_");
+  a.download = `NEXO_Questionario_${safeName}_${appState.metadata.targetIG}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importQuestionnaireJSON(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      initQuestionnaireState();
+      const q = appState.companyQuestionnaire;
+
+      if (parsed.organization) {
+        if (parsed.organization.companyName) q.companyName = parsed.organization.companyName;
+        if (parsed.organization.sector) q.sector = parsed.organization.sector;
+        if (parsed.organization.size) q.size = parsed.organization.size;
+        if (parsed.organization.assessor) q.assessor = parsed.organization.assessor;
+        if (parsed.organization.assessmentDate) q.assessmentDate = parsed.organization.assessmentDate;
+        if (parsed.organization.targetIg) {
+          appState.metadata.targetIG = parsed.organization.targetIg;
+          document.getElementById("globalIgSelector").value = parsed.organization.targetIg;
+        }
+      }
+
+      if (parsed.answers) {
+        q.answers = parsed.answers;
+      } else if (Array.isArray(parsed.controlsSummary)) {
+        parsed.controlsSummary.forEach((item) => {
+          if (item.id) {
+            q.answers[item.id] = {
+              score: item.declaredScore || 0,
+              obs: item.evidenceObs || ""
+            };
+          }
+        });
+      }
+
+      saveState();
+      renderQuestionnaireTab();
+
+      showNexoToast(`
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <span style="font-size:1.3rem;">📂</span>
+          <div>
+            <strong style="color:var(--accent-emerald);">Respostas do Questionário Carregadas!</strong><br/>
+            <span style="font-size:0.75rem; color:var(--text-secondary);">Arquivo: ${file.name}</span>
+          </div>
+        </div>
+      `);
+    } catch (err) {
+      alert("Erro ao importar questionário JSON: " + err.message);
+    }
+    event.target.value = "";
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================================
+// IMPORTAÇÃO / EXPORTAÇÃO GLOBAL DE DIAGNÓSTICO
+// ============================================================================
+function processJsonData(parsed, sourceFileName = "Arquivo JSON") {
+  try {
+    let updatedControls = 0;
+    let scenarioTitle = parsed.scenarioName || parsed.project || sourceFileName;
+
+    if (parsed.projectData) {
+      appState = parsed.projectData;
+      scenarioTitle = appState.metadata?.projectTitle || scenarioTitle;
+    } else {
+      // 1. Meta Target IG
+      const rawIg = parsed.targetIG || parsed.target_ig;
+      if (rawIg) {
+        const ig = rawIg.toString().toUpperCase();
+        if (["IG1", "IG2", "IG3"].includes(ig)) {
+          appState.metadata.targetIG = ig;
+          const selector = document.getElementById("globalIgSelector");
+          if (selector) selector.value = ig;
+        }
+      }
+
+      // 2. Pontuações de Controles CIS (cisControlsScores, cis_controls, controls_gap_analysis)
+      const ctrlList = parsed.cisControlsScores || parsed.cis_controls || parsed.controls_gap_analysis;
+      if (Array.isArray(ctrlList)) {
+        ctrlList.forEach((sc) => {
+          const ctrl = appState.cisControls.find((c) => c.id === sc.id || c.code === sc.code);
+          const score = typeof sc.asIsScore === "number" ? sc.asIsScore :
+                        typeof sc.as_is_score === "number" ? sc.as_is_score :
+                        typeof sc.score === "number" ? sc.score : null;
+          if (ctrl && score !== null) {
+            ctrl.asIsScore = score;
+            if (sc.status) {
+              ctrl.status = sc.status;
+            } else {
+              ctrl.status = score >= 85 ? `Implementado (${score}%)` : score >= 50 ? `Parcial (${score}%)` : `Gap Crítico (${score}%)`;
+            }
+            if (Array.isArray(ctrl.keySafeguards)) {
+              ctrl.keySafeguards.forEach((sg) => {
+                if (score >= 85) sg.status = "Implementado";
+                else if (score >= 50) sg.status = "Parcial";
+                else sg.status = "Não Implementado";
+              });
+            }
+            // Sincronizar resposta no questionário também
+            initQuestionnaireState();
+            if (!appState.companyQuestionnaire.answers[ctrl.id]) {
+              appState.companyQuestionnaire.answers[ctrl.id] = { score, obs: "" };
+            } else {
+              appState.companyQuestionnaire.answers[ctrl.id].score = score;
+            }
+            updatedControls++;
+          }
+        });
+      }
+
+      // 3. Avaliações de Regras Agentless (Ex: nexo_evidence_report.json)
+      if (Array.isArray(parsed.rule_evaluations)) {
+        parsed.rule_evaluations.forEach((r) => {
+          const rId = r.rule_id || "";
+          const score = Math.round(r.as_is_score ?? 0);
+          let targetId = null;
+          if (rId.includes("1.1.2")) targetId = 1;
+          else if (rId.includes("6.5")) targetId = 6;
+          else if (rId.includes("3.11")) targetId = 3;
+          else if (rId.includes("4.1")) targetId = 4;
+
+          if (targetId) {
+            const ctrl = appState.cisControls.find((c) => c.id === targetId);
+            if (ctrl) {
+              ctrl.asIsScore = score;
+              ctrl.status = score >= 80 ? `Conforme (${score}%)` : `Gap Detectado (${score}%)`;
+              updatedControls++;
+            }
+          }
+        });
+      }
+
+      // 4. Conectores de API
+      if (Array.isArray(parsed.apiConnectors)) {
+        parsed.apiConnectors.forEach((inc, i) => {
+          if (appState.apiConnectors[i]) {
+            Object.assign(appState.apiConnectors[i], inc);
+          }
+        });
+      }
+
+      // 5. Ativos Corporativos
+      if (Array.isArray(parsed.assets) && parsed.assets.length > 0) {
+        appState.assets = parsed.assets;
+      }
+
+      // 6. Matriz de Riscos
+      if (Array.isArray(parsed.risks) && parsed.risks.length > 0) {
+        appState.riskMatrix = parsed.risks;
+      }
+
+      // 7. Ações 5W2H
+      if (Array.isArray(parsed.actions5W2H) && parsed.actions5W2H.length > 0) {
+        appState.actionPlan5W2H = parsed.actions5W2H;
+      }
+    }
+
+    saveState();
+    renderAll();
+
+    const metrics = computeMetrics();
+    showNexoToast(`
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
+        <span style="font-size:1.25rem;">✅</span>
+        <strong style="color:var(--accent-emerald); font-size:0.95rem;">Cenário JSON Carregado!</strong>
+      </div>
+      <div style="font-size:0.83rem; color:var(--text-primary); margin-bottom:0.35rem;">
+        <strong>Identificação:</strong> ${scenarioTitle}
+      </div>
+      <div style="font-size:0.75rem; color:var(--text-secondary); line-height:1.4;">
+        • Aderência Média As-Is: <strong style="color:var(--accent-blue);">${metrics.avgAsIs}%</strong><br/>
+        • Meta To-Be: <strong>${metrics.ig}</strong> (${metrics.avgToBe}%) | Gap Médio: <strong>${metrics.avgGap}%</strong><br/>
+        • Controles Atualizados: <strong>${updatedControls}</strong> | Total de Ativos: <strong>${appState.assets.length}</strong>
+      </div>
+    `);
+  } catch (err) {
+    alert("Erro ao processar dados do JSON: " + err.message);
+  }
+}
+
 function importDiagnosticJSON(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -864,41 +1454,155 @@ function importDiagnosticJSON(event) {
   reader.onload = (e) => {
     try {
       const parsed = JSON.parse(e.target.result);
-      if (parsed.projectData) {
-        appState = parsed.projectData;
-      } else {
-        if (parsed.targetIG) appState.metadata.targetIG = parsed.targetIG;
-        if (Array.isArray(parsed.assets)) appState.assets = parsed.assets;
-        if (Array.isArray(parsed.apiConnectors)) {
-          parsed.apiConnectors.forEach((inc, i) => {
-            if (appState.apiConnectors[i]) {
-              Object.assign(appState.apiConnectors[i], inc);
-            }
-          });
-        }
-        if (Array.isArray(parsed.cisControlsScores)) {
-          parsed.cisControlsScores.forEach((sc) => {
-            const ctrl = appState.cisControls.find((c) => c.id === sc.id || c.code === sc.code);
-            if (ctrl && typeof sc.asIsScore === "number") {
-              ctrl.asIsScore = sc.asIsScore;
-            }
-          });
-        }
-      }
-      document.getElementById("globalIgSelector").value = appState.metadata.targetIG;
-      saveState();
-      renderAll();
+      processJsonData(parsed, file.name);
     } catch (err) {
-      alert("Erro ao importar arquivo JSON: " + err.message);
+      alert("Erro ao ler arquivo JSON: " + err.message);
     }
     event.target.value = "";
   };
   reader.readAsText(file);
 }
 
+function loadQuickScenario(key) {
+  if (!key) return;
+
+  if (key === "padrao") {
+    resetPrototypeData();
+    showNexoToast(`
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-size:1.2rem;">🔄</span>
+        <strong style="color:var(--accent-blue);">Estado Inicial da PoC Restaurado!</strong>
+      </div>
+    `);
+    const sel = document.getElementById("quickScenarioSelect");
+    if (sel) sel.value = "";
+    return;
+  }
+
+  const s1Scores = [
+    { id: 1, code: "CIS 01", asIsScore: 45, status: "Gap Documentação 1.1.2 (45%)" },
+    { id: 2, code: "CIS 02", asIsScore: 40, status: "Sem Allowlisting (40%)" },
+    { id: 3, code: "CIS 03", asIsScore: 28, status: "Sem Criptografia KMS/LGPD (28%)" },
+    { id: 4, code: "CIS 04", asIsScore: 35, status: "Sem Baseline CIS Benchmark (35%)" },
+    { id: 5, code: "CIS 05", asIsScore: 48, status: "Contas Admin Compartilhadas (48%)" },
+    { id: 6, code: "CIS 06", asIsScore: 30, status: "Ausência de MFA Admin (30%)" },
+    { id: 7, code: "CIS 07", asIsScore: 35, status: "Patches Manuais Atrasados (35%)" },
+    { id: 8, code: "CIS 08", asIsScore: 25, status: "Logs Descentralizados 15d (25%)" },
+    { id: 9, code: "CIS 09", asIsScore: 55, status: "DMARC em Modo None (55%)" },
+    { id: 10, code: "CIS 10", asIsScore: 60, status: "Antivírus Básico sem EDR (60%)" },
+    { id: 11, code: "CIS 11", asIsScore: 42, status: "Backup sem Imutabilidade/Teste (42%)" },
+    { id: 12, code: "CIS 12", asIsScore: 40, status: "Rede Plana sem VLAN Restrita (40%)" },
+    { id: 13, code: "CIS 13", asIsScore: 25, status: "Sem IDS/IPS Ativo (25%)" },
+    { id: 14, code: "CIS 14", asIsScore: 35, status: "Sem Treinamento de Phishing (35%)" },
+    { id: 15, code: "CIS 15", asIsScore: 30, status: "Fornecedores sem Cláusula LGPD (30%)" },
+    { id: 16, code: "CIS 16", asIsScore: 25, status: "Pipelines sem SAST/DAST (25%)" },
+    { id: 17, code: "CIS 17", asIsScore: 30, status: "Sem Playbook SOAR / PRI Defasado (30%)" },
+    { id: 18, code: "CIS 18", asIsScore: 20, status: "Pentest Não Executado (20%)" }
+  ];
+
+  const s2Scores = [
+    { id: 1, code: "CIS 01", asIsScore: 96, status: "Implementado - Docs 1.1.2 Versionados (96%)" },
+    { id: 2, code: "CIS 02", asIsScore: 92, status: "Implementado - SBOM & Inventário (92%)" },
+    { id: 3, code: "CIS 03", asIsScore: 95, status: "Implementado - KMS/TDE & RoPA LGPD (95%)" },
+    { id: 4, code: "CIS 04", asIsScore: 94, status: "Implementado - Hardening IaC Ansible (94%)" },
+    { id: 5, code: "CIS 05", asIsScore: 96, status: "Implementado - Contas Admin Dedicadas (96%)" },
+    { id: 6, code: "CIS 06", asIsScore: 98, status: "Implementado - MFA 100% Obrigatório (98%)" },
+    { id: 7, code: "CIS 07", asIsScore: 90, status: "Implementado - Scan Contínuo Agentless (90%)" },
+    { id: 8, code: "CIS 08", asIsScore: 92, status: "Implementado - SIEM 90 Dias Imutável (92%)" },
+    { id: 9, code: "CIS 09", asIsScore: 92, status: "Implementado - DMARC Reject & DNS Filter (92%)" },
+    { id: 10, code: "CIS 10", asIsScore: 95, status: "Implementado - EDR Comportamental Ativo (95%)" },
+    { id: 11, code: "CIS 11", asIsScore: 96, status: "Implementado - Object Lock & Restore Testado (96%)" },
+    { id: 12, code: "CIS 12", asIsScore: 90, status: "Implementado - Microssegmentação VPC/VLAN (90%)" },
+    { id: 13, code: "CIS 13", asIsScore: 88, status: "Implementado - NIDS & GuardDuty Ativos (88%)" },
+    { id: 14, code: "CIS 14", asIsScore: 92, status: "Implementado - Programa Contínuo LGPD/SI (92%)" },
+    { id: 15, code: "CIS 15", asIsScore: 86, status: "Implementado - Contratos DPA Auditados (86%)" },
+    { id: 16, code: "CIS 16", asIsScore: 88, status: "Implementado - SAST/DAST Integrado (88%)" },
+    { id: 17, code: "CIS 17", asIsScore: 92, status: "Implementado - SOAR Automatizado (92%)" },
+    { id: 18, code: "CIS 18", asIsScore: 85, status: "Implementado - Pentest Validado (85%)" }
+  ];
+
+  if (key === "exemplo_1") {
+    processJsonData({
+      scenarioName: "Cenário 1 — Diagnóstico Inicial (As-Is Crítico / Pré-Remediação 5W2H)",
+      targetIG: "IG2",
+      cisControlsScores: s1Scores
+    }, "exemplo_1_cenario_critico_as_is.json");
+  } else if (key === "exemplo_2") {
+    processJsonData({
+      scenarioName: "Cenário 2 — Diagnóstico Evoluído (Pós-Plano 5W2H & Automação DevSecOps)",
+      targetIG: "IG2",
+      cisControlsScores: s2Scores
+    }, "exemplo_2_cenario_evoluido_pos_5w2h.json");
+  } else if (key === "relatorio") {
+    processJsonData({
+      scenarioName: "Relatório de Evidências da Validação em 3 Níveis (Seção 4.3)",
+      targetIG: "IG2",
+      rule_evaluations: [
+        { rule_id: "RULE-CIS-1.1.2-DOCS", as_is_score: 66.7 },
+        { rule_id: "RULE-CIS-6.5-MFA", as_is_score: 75.0 },
+        { rule_id: "RULE-CIS-3.11-LGPD-GDPR", as_is_score: 60.0 },
+        { rule_id: "RULE-CIS-4.1-HARDENING", as_is_score: 87.5 }
+      ]
+    }, "nexo_evidence_report.json");
+  }
+
+  const sel = document.getElementById("quickScenarioSelect");
+  if (sel) sel.value = "";
+}
+
+function setupDragAndDrop() {
+  const overlay = document.getElementById("dropZoneOverlay");
+  let dragCounter = 0;
+
+  window.addEventListener("dragenter", (e) => {
+    e.preventDefault();
+    dragCounter++;
+    if (overlay) overlay.style.display = "flex";
+  });
+
+  window.addEventListener("dragover", (e) => {
+    e.preventDefault();
+  });
+
+  window.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter <= 0) {
+      dragCounter = 0;
+      if (overlay) overlay.style.display = "none";
+    }
+  });
+
+  window.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dragCounter = 0;
+    if (overlay) overlay.style.display = "none";
+
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.name.endsWith(".json")) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const parsed = JSON.parse(ev.target.result);
+            processJsonData(parsed, file.name);
+          } catch (err) {
+            alert("Erro ao ler JSON arrastado: " + err.message);
+          }
+        };
+        reader.readAsText(file);
+      } else {
+        alert("Por favor, solte um arquivo com extensão .json");
+      }
+    }
+  });
+}
+
 function renderAll() {
   renderGlobalKPIs();
   renderOverviewTab();
+  renderQuestionnaireTab();
   renderConnectorsAndAssets();
   renderCoreRulesAndCompliance();
   renderGapAndRisksTab();
@@ -908,4 +1612,5 @@ function renderAll() {
 window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("globalIgSelector").value = appState.metadata.targetIG;
   renderAll();
+  setupDragAndDrop();
 });

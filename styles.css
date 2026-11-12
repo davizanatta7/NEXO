@@ -624,4 +624,101 @@ tr:hover td {
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65);
 }
 
+/* Seção do Questionário As-Is */
+.q-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.4rem;
+  transition: all 0.2s ease;
+}
+
+.q-card:hover {
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.q-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.6rem;
+  margin: 0.85rem 0;
+}
+
+.q-option-btn {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.q-option-btn:hover {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: var(--accent-blue);
+  color: #fff;
+}
+
+.q-option-btn.selected-0 {
+  background: rgba(244, 63, 94, 0.18);
+  border-color: #f43f5e;
+  color: #fda4af;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.2);
+}
+
+.q-option-btn.selected-25 {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #f59e0b;
+  color: #fde68a;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+.q-option-btn.selected-50 {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: #38bdf8;
+  color: #bae6fd;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.q-option-btn.selected-75 {
+  background: rgba(45, 212, 191, 0.18);
+  border-color: #2dd4bf;
+  color: #99f6e4;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.2);
+}
+
+.q-option-btn.selected-100 {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: #10b981;
+  color: #6ee7b7;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
+.q-progress-bar-container {
+  height: 6px;
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.q-progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+
 

@@ -21,6 +21,36 @@ const NEXO_DEFAULT_DATA = {
     }
   },
 
+  // Questionário de Levantamento As-Is da Empresa
+  companyQuestionnaire: {
+    companyName: "Nexus Indústria e Serviços S/A",
+    sector: "Tecnologia / Software (SaaS)",
+    size: "Médio (51 a 250 colaboradores / multi-cloud)",
+    assessor: "Davi Freire Zanatta & Luiz Alberto Ferreira Gomes",
+    assessmentDate: "2026-11-12",
+    targetIg: "IG2",
+    answers: {
+      1: { score: 68, obs: "Inventário físico automatizado; documentação 1.1.2 em revisão (última versão há 210 dias)." },
+      2: { score: 55, obs: "Inventário de software realizado por varredura, mas allowlisting ainda não imposto." },
+      3: { score: 42, obs: "Criptografia ativa em bancos de produção; homologação sem KMS e RoPA LGPD em elaboração." },
+      4: { score: 58, obs: "Baseline CIS Level 1 aplicado em 88% das VMs Linux; servidores legados pendentes." },
+      5: { score: 62, obs: "Contas administrativas segregadas, porém 3 contas de serviço com senhas sem expiração." },
+      6: { score: 45, obs: "MFA implementado para e-mail e VPN, mas ausente em 3 contas de administração de domínio." },
+      7: { score: 48, obs: "Varredura trimestral manual; processo de correção de patches críticos leva mais de 30 dias." },
+      8: { score: 44, obs: "Logs centralizados no Azure Log Analytics, porém com retenção limitada a 30 dias." },
+      9: { score: 65, obs: "SPF e DKIM configurados; DMARC em modo monitoramento ('p=none') sem política de rejeição." },
+      10: { score: 72, obs: "Microsoft Defender for Endpoint instalado na maioria das máquinas corporativas." },
+      11: { score: 58, obs: "Backups diários em nuvem; imutabilidade ativada recentemente, sem teste de restore semestral." },
+      12: { score: 52, obs: "Rede segmentada entre escritórios e data center, mas VPC interna sem microssegmentação fina." },
+      13: { score: 35, obs: "Monitoramento de rede baseado em NetFlow básico; IDS/IPS não implantado no perímetro interno." },
+      14: { score: 50, obs: "Treinamento admissional realizado; sem simulações contínuas de phishing com métricas de clique." },
+      15: { score: 38, obs: "Contratos de fornecedores contêm cláusula geral, mas sem auditoria técnica de terceiros ou DPA." },
+      16: { score: 40, obs: "Testes unitários e linters ativos; SAST/DAST não bloqueiam o pipeline de deploy em homolog/prod." },
+      17: { score: 42, obs: "Plano de Resposta a Incidentes documentado, porém equipe sem simulados de mesa (tabletop exercises)." },
+      18: { score: 30, obs: "Último teste de invasão realizado há mais de 18 meses por consultoria externa." }
+    }
+  },
+
   // Conectores de API Agentless (Seção 4.1 e 4.2 do documento de Engenharia de Software)
   apiConnectors: [
     {
@@ -990,3 +1020,169 @@ steps:
     }
   }
 };
+
+// 18 Questões Estruturadas do Questionário de Levantamento As-Is (CIS Controls v8.1)
+const NEXO_QUESTIONNAIRE_QUESTIONS = [
+  {
+    controlId: 1,
+    code: "CIS 01",
+    title: "Inventário e Controle de Ativos Corporativos & Documentação de Segurança",
+    nistCategory: "IDENTIFY_GOVERN",
+    question: "A empresa possui um inventário formal e atualizado de todos os dispositivos conectados à rede e mantém seus ativos de Documentação de Segurança (Políticas, Planos de Resposta, Normas ISO) revisados há menos de 180 dias (Salvaguarda 1.1.2 do CIS v8.1)?",
+    guide: "Verifique a existência de CMDB automatizado e se a Política Geral de Segurança (PGSI) e planos operacionais foram revisados no último semestre.",
+    normatives: "CIS v8.1 (1.1, 1.1.2) | ISO 27001 A.5.9, A.5.10 | NIST CSF 2.0 (ID.AM, GV.PO)"
+  },
+  {
+    controlId: 2,
+    code: "CIS 02",
+    title: "Inventário e Controle de Ativos de Software",
+    nistCategory: "IDENTIFY_GOVERN",
+    question: "A organização rastreia todos os softwares instalados nos servidores e estações, bloqueando aplicações não autorizadas (Allowlisting) e mantendo apenas versões suportadas com atualizações do fabricante?",
+    guide: "Avalie controle de licenciamento, rastreamento de SBOM/bibliotecas e política de bloqueio de softwares não homologados.",
+    normatives: "CIS v8.1 (2.1, 2.5) | ISO 27001 A.8.19, A.8.32 | NIST CSF 2.0 (ID.AM-02)"
+  },
+  {
+    controlId: 3,
+    code: "CIS 03",
+    title: "Proteção de Dados e Privacidade (LGPD & GDPR)",
+    nistCategory: "PROTECT",
+    question: "Os dados pessoais e confidenciais possuem mapeamento de fluxo (RoPA/LGPD) e utilizam criptografia robusta (AES-256) em repouso (bancos de dados, notebooks via BitLocker) e em trânsito (TLS 1.3)?",
+    guide: "Conforme Art. 46 da LGPD e Art. 32 do GDPR, verifique se volumes RDS/S3 e discos de estações utilizam criptografia gerenciada por KMS/TDE.",
+    normatives: "CIS v8.1 (3.1, 3.11) | LGPD Art. 46 | GDPR Art. 32 | ISO 27001 A.8.24"
+  },
+  {
+    controlId: 4,
+    code: "CIS 04",
+    title: "Configuração Segura de Ativos e Software (Hardening)",
+    nistCategory: "PROTECT",
+    question: "Existe uma configuração-padrão de segurança (Baseline CIS Benchmark) formalizada e aplicada a servidores, sistemas operacionais e dispositivos de rede antes de entrarem em produção?",
+    guide: "Cheque se há playbooks IaC (Ansible/Terraform) ou GPOs que desativam serviços desnecessários e fecham portas inseguras (RDP/Telnet/FTP).",
+    normatives: "CIS v8.1 (4.1, 4.8) | ISO 27001 A.8.9 | ISO 27002 8.9 | NIST PR.IP"
+  },
+  {
+    controlId: 5,
+    code: "CIS 05",
+    title: "Gestão de Contas Corporativas e Privilegiadas",
+    nistCategory: "PROTECT",
+    question: "As contas de administradores (Root, Domain Admin) são dedicadas, segregadas do e-mail do dia a dia, e têm suas permissões revisadas periodicamente com desativação imediata no desligamento?",
+    guide: "Nenhum usuário deve usar conta de privilégio administrativo para tarefas diárias. Verifique a adoção do princípio do menor privilégio.",
+    normatives: "CIS v8.1 (5.1, 5.4) | ISO 27001 A.5.15, A.5.18 | NIST PR.AA-01"
+  },
+  {
+    controlId: 6,
+    code: "CIS 06",
+    title: "Gestão de Controle de Acesso e Autenticação Multifator (MFA)",
+    nistCategory: "PROTECT",
+    question: "O segundo fator de autenticação (MFA) é obrigatório para 100% dos acessos administrativos e acessos remotos (VPN, Cloud, E-mail corporativo), sem exceções legadas?",
+    guide: "Conforme Salvaguarda 6.5 do CIS v8.1 e ISO 27001 A.8.5, o MFA deve cobrir todas as contas privilegiadas e conexões externas.",
+    normatives: "CIS v8.1 (6.3, 6.5) | ISO 27001 A.8.5 | NIST CSF 2.0 PR.AA-05"
+  },
+  {
+    controlId: 7,
+    code: "CIS 07",
+    title: "Gestão Contínua de Vulnerabilidades",
+    nistCategory: "IDENTIFY_GOVERN",
+    question: "A empresa realiza varreduras automáticas de vulnerabilidades pelo menos mensalmente e aplica patches críticos de segurança dentro de um SLA pré-definido?",
+    guide: "Avalie se há scanners automatizados de vulnerabilidades e se correções críticas (CVSS >= 7.0) são implantadas rapidamente.",
+    normatives: "CIS v8.1 (7.1, 7.5) | ISO 27001 A.8.8 | NIST CSF 2.0 ID.RA-01"
+  },
+  {
+    controlId: 8,
+    code: "CIS 08",
+    title: "Gestão e Retenção de Logs de Auditoria (SIEM)",
+    nistCategory: "DETECT",
+    question: "Os logs de segurança e autenticação são centralizados em um servidor/SIEM dedicado, com proteção contra exclusão (imutabilidade) e retenção mínima de 90 dias para fins forenses?",
+    guide: "Verifique se há encaminhamento contínuo de logs de firewall, AD e servidores, e se a retenção atende normas de auditoria e incidentes.",
+    normatives: "CIS v8.1 (8.2, 8.9) | ISO 27001 A.8.15, A.8.16 | NIST DE.CM-01"
+  },
+  {
+    controlId: 9,
+    code: "CIS 09",
+    title: "Proteções de E-mail e Navegadores Web",
+    nistCategory: "PROTECT",
+    question: "O domínio corporativo possui proteções ativas contra spoofing (SPF, DKIM, DMARC com política de rejeição) e ferramentas de filtro de conteúdo e DNS malicioso nos navegadores?",
+    guide: "Cheque se os registros DNS possuem DMARC configurado em 'p=reject' ou 'p=quarantine' e se há bloqueio de domínios maliciosos.",
+    normatives: "CIS v8.1 (9.2, 9.5) | ISO 27001 A.8.23 | NIST PR.AT-01"
+  },
+  {
+    controlId: 10,
+    code: "CIS 10",
+    title: "Defesas Contra Malware (EDR Comportamental)",
+    nistCategory: "PROTECT",
+    question: "Todas as estações de trabalho e servidores corporativos contam com solução de detecção e resposta em endpoints (EDR) com atualização automática e análise comportamental?",
+    guide: "Antivírus tradicional baseado apenas em assinaturas não é suficiente; é necessária proteção contra ransomware e resposta automatizada a ameaças.",
+    normatives: "CIS v8.1 (10.1, 10.2) | ISO 27001 A.8.7 | NIST PR.PT-01"
+  },
+  {
+    controlId: 11,
+    code: "CIS 11",
+    title: "Recuperação de Dados e Backups Imutáveis",
+    nistCategory: "RESPOND_RECOVER",
+    question: "Os dados críticos possuem cópias de backup automatizadas, com pelo menos uma cópia isolada/imutável (regra 3-2-1), e testes práticos de restauração são executados pelo menos semestralmente?",
+    guide: "Conforme CIS 11.5 e ISO 27001 A.8.13, backups que nunca foram restaurados para teste não garantem recuperação contra incidentes de ransomware.",
+    normatives: "CIS v8.1 (11.1, 11.5) | ISO 27001 A.8.13 | NIST RC.RP-01"
+  },
+  {
+    controlId: 12,
+    code: "CIS 12",
+    title: "Gestão de Infraestrutura e Segmentação de Rede",
+    nistCategory: "PROTECT",
+    question: "A rede corporativa é segmentada em VLANs/VPCs (isolando servidores de produção, banco de dados, rede corporativa e rede de visitantes), com regras restritivas de firewall?",
+    guide: "Evite redes planas. Servidores que armazenam dados sensíveis devem estar em zonas desmilitarizadas (DMZ) ou sub-redes isoladas.",
+    normatives: "CIS v8.1 (12.1, 12.4) | ISO 27001 A.8.20, A.8.22 | NIST PR.AC-05"
+  },
+  {
+    controlId: 13,
+    code: "CIS 13",
+    title: "Monitoramento e Defesa de Rede (IDS/IPS)",
+    nistCategory: "DETECT",
+    question: "Existem mecanismos de monitoramento contínuo de tráfego de rede (IDS/IPS ou detecção de anomalias na nuvem) configurados para alertar sobre conexões suspeitas ou varreduras de portas?",
+    guide: "Avalie se ferramentas como Suricata, Snort, AWS GuardDuty ou Azure Network Watcher monitoram o perímetro corporativo.",
+    normatives: "CIS v8.1 (13.1, 13.3) | ISO 27001 A.8.16 | NIST DE.AE-01"
+  },
+  {
+    controlId: 14,
+    code: "CIS 14",
+    title: "Conscientização e Treinamento em Segurança",
+    nistCategory: "IDENTIFY_GOVERN",
+    question: "Todos os colaboradores passam por treinamentos periódicos de conscientização sobre segurança da informação, privacidade de dados (LGPD) e simulações regulares de phishing?",
+    guide: "O fator humano é o elo mais crítico. Deve haver campanhas anuais obrigatórias de segurança e testes práticos de phishing.",
+    normatives: "CIS v8.1 (14.1, 14.3) | ISO 27001 A.6.3 | NIST PR.AT-01"
+  },
+  {
+    controlId: 15,
+    code: "CIS 15",
+    title: "Gestão de Segurança de Fornecedores e Terceiros",
+    nistCategory: "IDENTIFY_GOVERN",
+    question: "Existe processo de homologação de fornecedores, avaliação de riscos de terceiros com acesso à rede e cláusulas contratuais de confidencialidade e proteção de dados (DPA)?",
+    guide: "A LGPD responsabiliza controladores por falhas em parceiros. Cláusulas de segurança e auditorias devem ser exigidas em contrato.",
+    normatives: "CIS v8.1 (15.1, 15.3) | ISO 27001 A.5.19 | GDPR Art. 28 | LGPD Art. 39"
+  },
+  {
+    controlId: 16,
+    code: "CIS 16",
+    title: "Segurança de Software de Aplicação (DevSecOps)",
+    nistCategory: "PROTECT",
+    question: "O ciclo de desenvolvimento de software inclui validações automatizadas de segurança (SAST, DAST, análise de dependências SCA) integradas na esteira de CI/CD antes da publicação?",
+    guide: "Em conformidade com DevSecOps e CIS 16, código-fonte e contêineres devem passar por verificação de segurança antes de ir para produção.",
+    normatives: "CIS v8.1 (16.1, 16.3) | ISO 27001 A.8.25, A.8.28 | NIST PR.DS-01"
+  },
+  {
+    controlId: 17,
+    code: "CIS 17",
+    title: "Gestão e Resposta a Incidentes de Segurança (SOAR)",
+    nistCategory: "RESPOND_RECOVER",
+    question: "A organização possui um Plano de Resposta a Incidentes formalizado, equipe ou responsável designado, playbooks de contenção e canal de comunicação de incidentes conforme Art. 48 da LGPD?",
+    guide: "O tempo de resposta e comunicação à ANPD e aos titulares depende de um fluxo pré-estabelecido de contenção, triagem e comunicação.",
+    normatives: "CIS v8.1 (17.1, 17.4) | ISO 27001 A.5.24 | LGPD Art. 48 | NIST RS.CO"
+  },
+  {
+    controlId: 18,
+    code: "CIS 18",
+    title: "Testes de Invasão (Pentest Empírico)",
+    nistCategory: "IDENTIFY_GOVERN",
+    question: "São realizados testes periódicos de invasão (pentests) conduzidos por profissionais especializados para identificar vulnerabilidades exploráveis na infraestrutura e aplicações?",
+    guide: "Avaliações empíricas externas e internas comprovam a eficácia das defesas e identificam falhas antes de atores maliciosos.",
+    normatives: "CIS v8.1 (18.1, 18.2) | ISO 27001 A.8.8, A.5.35 | NIST ID.RA-02"
+  }
+];
