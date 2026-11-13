@@ -266,6 +266,43 @@ function renderOverviewTab() {
   const ciaSel = document.getElementById("ciaWidgetIgSelector");
   if (ciaSel) ciaSel.value = ciaIg;
 
+  // Bloco exclusivo de impressão/PDF: explicação detalhada das porcentagens
+  const printMethodEl = document.getElementById("printPercentageMethodology");
+  if (printMethodEl) {
+    const m = computeMetrics();
+    printMethodEl.innerHTML = `
+      <div class="card-header" style="margin-bottom:0.5rem;">
+        <div>
+          <div class="card-title">&#128202; Metodologia e Interpretação Detalhada das Porcentagens</div>
+          <div class="card-subtitle">Critérios de cálculo de aderência (As-Is), meta normativa (To-Be) e lacuna (Gap)</div>
+        </div>
+      </div>
+      <div style="font-size:0.8rem; line-height:1.5; color:#1e293b;">
+        <p style="margin-bottom:0.45rem;">
+          <strong>1. Como as porcentagens são calculadas:</strong> Cada um dos 18 Controles Críticos do <strong>CIS Controls v8.1</strong> recebe uma pontuação de aderência atual (<strong>As-Is</strong>) entre <strong>0%</strong> e <strong>100%</strong>, calculada pela média das salvaguardas implementadas (<em>Implementado = 100%</em>, <em>Parcial = 50%</em>, <em>Não Implementado = 0%</em>) ou declaradas no Questionário (<em>0%, 25%, 50%, 75%, 100%</em>). As porcentagens exibidas nos agrupamentos (Funções NIST CSF 2.0 e Pilares da Tríade CIA) correspondem à <strong>média aritmética</strong> dos controles pertencentes a cada categoria.
+        </p>
+        <p style="margin-bottom:0.45rem;">
+          <strong>2. Estado Atual vs. Meta e Gap (${m.ig}):</strong> Atualmente a organização apresenta aderência média global de <strong>${m.avgAsIs}%</strong> (As-Is) frente à meta de <strong>${m.avgToBe}%</strong> (To-Be para <strong>${m.ig}</strong>), resultando em uma lacuna média (<strong>Gap = To-Be &minus; As-Is</strong>) de <strong>${m.avgGap} pontos percentuais (-${m.avgGap}%)</strong>.
+        </p>
+        <p style="margin:0;">
+          <strong>3. Faixas de Classificação das Porcentagens:</strong>
+          &bull; <strong>0% a 49% (Gap Crítico):</strong> Controle ausente ou incipiente, gerando exposição imediata a incidentes ou sanções (ex.: LGPD/GDPR).
+          &bull; <strong>50% a 84% (Parcial / Em Evolução):</strong> Controle existente em parte do ambiente, porém sem cobertura total ou automação contínua.
+          &bull; <strong>85% a 100% (Implementado / Conforme):</strong> Controle consolidado, auditável e alinhado ao nível de maturidade esperado.
+        </p>
+      </div>
+    `;
+  }
+
+  const nistDescriptions = {
+    GOVERN: "Define políticas, papéis, gestão documental (CIS 1.1.2) e governança de terceiros/conscientização.",
+    IDENTIFY: "Mapeia ativos físicos/software, vulnerabilidades e testes de invasão para conhecer a superfície de exposição.",
+    PROTECT: "Aplica salvaguardas preventivas como criptografia (LGPD), hardening, MFA (CIS 6.5), EDR, rede e DevSecOps.",
+    DETECT: "Centraliza logs de auditoria (SIEM) e monitora tráfego de rede (IDS/IPS) para identificação rápida de anomalias.",
+    RESPOND: "Estrutura planos de resposta a incidentes, playbooks SOAR e contenção conforme prazos regulatórios (LGPD Art. 48).",
+    RECOVER: "Garante continuidade operacional e restauração segura por meio de backups imutáveis e testes periódicos de restore."
+  };
+
   const nistFunctions = ["GOVERN", "IDENTIFY", "PROTECT", "DETECT", "RESPOND", "RECOVER"];
   const nistContainer = document.getElementById("nistComparisonContainer");
 
@@ -275,6 +312,7 @@ function renderOverviewTab() {
     const asIs = Math.round(matched.reduce((a, c) => a + c.asIsScore, 0) / (matched.length || 1));
     const toBe = Math.round(matched.reduce((a, c) => a + c.toBeScore[nistIg], 0) / (matched.length || 1));
     const gap = Math.max(0, toBe - asIs);
+    const controlsBreakdown = matched.map((c) => `${c.code} (${c.asIsScore}% / Meta ${c.toBeScore[nistIg]}%)`).join(", ");
 
     nistHtml += `
       <div class="progress-row">
@@ -286,12 +324,21 @@ function renderOverviewTab() {
           <div class="progress-fill" style="width:${asIs}%; background: linear-gradient(90deg, #0284c7, #38bdf8);"></div>
           <div class="progress-marker" style="left:${toBe}%;" title="Meta To-Be (${toBe}%)"></div>
         </div>
+        <div class="print-only print-detail-note">
+          <strong>O que significa (${asIs}% atual vs. ${toBe}% meta):</strong> ${nistDescriptions[fn] || ""}
+          O índice de <strong>${asIs}%</strong> é a média de ${matched.length} controle(s): <em>${controlsBreakdown}</em>. A lacuna de <strong>-${gap}%</strong> indica o esforço necessário para atingir o padrão ${nistIg}.
+        </div>
       </div>
     `;
   });
   nistContainer.innerHTML = nistHtml;
 
   // Tríade CIA + Comparativo Manual vs Automatizado
+  const pillarDescriptions = {
+    Confidencialidade: "Mede a eficácia na proteção contra acesso não autorizado a dados sensíveis e credenciais (MFA, criptografia LGPD/GDPR, gestão de contas e terceiros).",
+    Integridade: "Avalia a confiabilidade e exatidão dos ativos, configurações e registros (inventário, hardening, patches, SIEM, proteção web/EDR e DevSecOps).",
+    Disponibilidade: "Reflete a resiliência operacional e continuidade dos serviços diante de falhas ou ataques (backups imutáveis, segmentação de rede, IDS/IPS e resposta a incidentes)."
+  };
   const pillars = ["Confidencialidade", "Integridade", "Disponibilidade"];
   const ciaContainer = document.getElementById("ciaAndCmmcContainer");
   let ciaHtml = `<div style="margin-bottom:1rem;">`;
@@ -300,6 +347,8 @@ function renderOverviewTab() {
     const controls = appState.cisControls.filter((c) => c.cia === pillar);
     const score = Math.round(controls.reduce((a, c) => a + c.asIsScore, 0) / (controls.length || 1));
     const target = Math.round(controls.reduce((a, c) => a + c.toBeScore[ciaIg], 0) / (controls.length || 1));
+    const pillarGap = Math.max(0, target - score);
+    const controlsBreakdown = controls.map((c) => `${c.code} (${c.asIsScore}%)`).join(", ");
     const color =
       pillar === "Confidencialidade" ? "#38bdf8" : pillar === "Integridade" ? "#10b981" : "#f59e0b";
 
@@ -312,6 +361,10 @@ function renderOverviewTab() {
         <div class="progress-track">
           <div class="progress-fill" style="width:${score}%; background:${color};"></div>
           <div class="progress-marker" style="left:${target}%;"></div>
+        </div>
+        <div class="print-only print-detail-note">
+          <strong>Detalhamento (${score}% atual / Gap de -${pillarGap}%):</strong> ${pillarDescriptions[pillar]}
+          Composto por ${controls.length} controles: <em>${controlsBreakdown}</em>.
         </div>
       </div>
     `;

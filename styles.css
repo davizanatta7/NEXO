@@ -619,11 +619,27 @@ tr:hover td {
   .top-nav-brand { padding: 0.6rem 0 0.25rem; }
 }
 
+.print-only {
+  display: none !important;
+}
+
 @media print {
-  .top-nav-header, .nav-tabs, .header-controls, .no-print { display: none !important; }
-  body { background: #fff; color: #000; }
-  .card, .kpi-card { border: 1px solid #ccc; background: #fff; color: #000; break-inside: avoid; }
+  .top-nav-header, .nav-tabs, .header-controls, .no-print, .ig-selector-box { display: none !important; }
+  .print-only { display: block !important; }
+  body { background: #fff; color: #111; }
+  .card, .kpi-card { border: 1px solid #cbd5e1; background: #fff !important; color: #111 !important; break-inside: avoid; }
+  .card-title, .card-subtitle, .kpi-label, .kpi-sub, .progress-header { color: #1e293b !important; }
+  .progress-track { border: 1px solid #cbd5e1; background: #f1f5f9 !important; }
   .tab-section { display: block !important; margin-bottom: 2rem; }
+  .print-detail-note {
+    font-size: 0.76rem;
+    color: #334155 !important;
+    margin-top: 0.35rem;
+    margin-bottom: 0.55rem;
+    line-height: 1.45;
+    border-left: 3px solid #0284c7;
+    padding-left: 0.55rem;
+  }
 }
 
 /* Notificação Toast e Drag & Drop */
