@@ -42,10 +42,30 @@ function switchTab(tabId) {
   });
 }
 
+function syncTargetIgSelectors(ig) {
+  ["globalIgSelector", "qTargetIg"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = ig;
+  });
+}
+
 function changeTargetIG(newIG) {
   appState.metadata.targetIG = newIG;
+  syncTargetIgSelectors(newIG);
   saveState();
   renderAll();
+}
+
+function changeNistWidgetIG(newIG) {
+  appState.metadata.nistTargetIG = newIG;
+  saveState();
+  renderOverviewTab();
+}
+
+function changeCiaWidgetIG(newIG) {
+  appState.metadata.ciaTargetIG = newIG;
+  saveState();
+  renderOverviewTab();
 }
 
 function recalculateControlScore(control) {
@@ -237,7 +257,14 @@ function renderRiskGraphSVG() {
 // ABA 0: Visão Geral
 function renderOverviewTab() {
   const ig = appState.metadata.targetIG;
-  document.getElementById("overviewIgBadge").textContent = `Alvo: ${ig}`;
+  const nistIg = appState.metadata.nistTargetIG || ig;
+  const ciaIg = appState.metadata.ciaTargetIG || ig;
+  syncTargetIgSelectors(ig);
+
+  const nistSel = document.getElementById("nistWidgetIgSelector");
+  if (nistSel) nistSel.value = nistIg;
+  const ciaSel = document.getElementById("ciaWidgetIgSelector");
+  if (ciaSel) ciaSel.value = ciaIg;
 
   const nistFunctions = ["GOVERN", "IDENTIFY", "PROTECT", "DETECT", "RESPOND", "RECOVER"];
   const nistContainer = document.getElementById("nistComparisonContainer");
@@ -246,14 +273,14 @@ function renderOverviewTab() {
   nistFunctions.forEach((fn) => {
     const matched = appState.cisControls.filter((c) => c.nistFunction.includes(fn));
     const asIs = Math.round(matched.reduce((a, c) => a + c.asIsScore, 0) / (matched.length || 1));
-    const toBe = Math.round(matched.reduce((a, c) => a + c.toBeScore[ig], 0) / (matched.length || 1));
+    const toBe = Math.round(matched.reduce((a, c) => a + c.toBeScore[nistIg], 0) / (matched.length || 1));
     const gap = Math.max(0, toBe - asIs);
 
     nistHtml += `
       <div class="progress-row">
         <div class="progress-header">
           <span><strong>${fn}</strong> ${fn === "GOVERN" ? '<span class="badge badge-purple">NIST CSF 2.0 &bull; CIS v8.1</span>' : ""}</span>
-          <span>As-Is: <strong>${asIs}%</strong> &bull; Meta (${ig}): <strong>${toBe}%</strong> &bull; <span style="color:var(--accent-rose)">Gap: -${gap}%</span></span>
+          <span>As-Is: <strong>${asIs}%</strong> &bull; Meta (${nistIg}): <strong>${toBe}%</strong> &bull; <span style="color:var(--accent-rose)">Gap: -${gap}%</span></span>
         </div>
         <div class="progress-track">
           <div class="progress-fill" style="width:${asIs}%; background: linear-gradient(90deg, #0284c7, #38bdf8);"></div>
@@ -272,7 +299,7 @@ function renderOverviewTab() {
   pillars.forEach((pillar) => {
     const controls = appState.cisControls.filter((c) => c.cia === pillar);
     const score = Math.round(controls.reduce((a, c) => a + c.asIsScore, 0) / (controls.length || 1));
-    const target = Math.round(controls.reduce((a, c) => a + c.toBeScore[ig], 0) / (controls.length || 1));
+    const target = Math.round(controls.reduce((a, c) => a + c.toBeScore[ciaIg], 0) / (controls.length || 1));
     const color =
       pillar === "Confidencialidade" ? "#38bdf8" : pillar === "Integridade" ? "#10b981" : "#f59e0b";
 
@@ -280,7 +307,7 @@ function renderOverviewTab() {
       <div class="progress-row">
         <div class="progress-header">
           <span><strong>${pillar}</strong> (${controls.length} Controles CIS)</span>
-          <span>Atual: <strong>${score}%</strong> / Meta: <strong>${target}%</strong></span>
+          <span>Atual: <strong>${score}%</strong> / Meta (${ciaIg}): <strong>${target}%</strong></span>
         </div>
         <div class="progress-track">
           <div class="progress-fill" style="width:${score}%; background:${color};"></div>
@@ -308,33 +335,6 @@ function renderOverviewTab() {
   ciaContainer.innerHTML = ciaHtml;
 
   renderRiskGraphSVG();
-
-  // Tabela do Cronograma
-  const tbody = document.querySelector("#timelineTable tbody");
-  tbody.innerHTML = appState.projectTimeline
-    .map((item) => {
-      const badgeClass =
-        item.status === "Concluída"
-          ? "badge-emerald"
-          : item.status.includes("validação")
-          ? "badge-blue"
-          : "badge-amber";
-      return `
-        <tr>
-          <td><strong>${item.stage}</strong></td>
-          <td><span class="badge ${badgeClass}">${item.status}</span></td>
-          <td>${item.period}</td>
-          <td>${item.deliverable}</td>
-          <td style="min-width:140px;">
-            <div class="progress-track" style="height:8px;">
-              <div class="progress-fill" style="width:${item.progress}%; background:var(--accent-emerald);"></div>
-            </div>
-            <span style="font-size:0.74rem; color:var(--text-secondary);">${item.progress}%</span>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
 }
 
 // ABA 1: Conectores Agentless + Inventário de Ativos

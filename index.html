@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NEXO | Automatização de Gap Analysis em Sistemas de Gestão de Segurança</title>
+  <link rel="icon" type="image/jpeg" href="logo-nexo.jpg" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -11,7 +12,7 @@
   <!-- Cabeçalho Principal de Navegação (Visão Geral, Questionário e Etapas) -->
   <header class="top-nav-header">
     <div class="top-nav-brand" onclick="switchTab('tab-overview')" title="Ir para Visão Geral">
-      <div class="top-nav-logo">NX</div>
+      <img src="logo-nexo.jpg" alt="Logo NEXO Gap Analysis" class="top-nav-logo-img" />
       <div class="top-nav-brand-text">
         <span class="top-nav-title">NEXO</span>
         <span class="top-nav-sub">Gap Analysis</span>
@@ -76,7 +77,14 @@
               <div class="card-title">&#127919; Radiografia As-Is vs. To-Be por Função NIST CSF 2.0</div>
               <div class="card-subtitle">Alinhamento estrutural dos CIS Controls v8.1 (Incluindo Governança)</div>
             </div>
-            <span class="badge badge-blue" id="overviewIgBadge">Alvo: IG2</span>
+            <div class="ig-selector-box" style="padding:0.28rem 0.6rem; font-size:0.78rem;" title="Alterar Grupo de Implementação alvo da Radiografia NIST">
+              <span>Alvo:</span>
+              <select id="nistWidgetIgSelector" onchange="changeNistWidgetIG(this.value)">
+                <option value="IG1">IG1</option>
+                <option value="IG2" selected>IG2</option>
+                <option value="IG3">IG3</option>
+              </select>
+            </div>
           </div>
           <div id="nistComparisonContainer"></div>
         </div>
@@ -86,6 +94,14 @@
             <div>
               <div class="card-title">&#128737; Equilíbrio da Tríade CIA &amp; Comparativo Manual vs. Automatizado</div>
               <div class="card-subtitle">Confidencialidade, Integridade e Disponibilidade + Ganho de Eficiência</div>
+            </div>
+            <div class="ig-selector-box" style="padding:0.28rem 0.6rem; font-size:0.78rem;" title="Alterar Grupo de Implementação alvo da Tríade CIA">
+              <span>Alvo:</span>
+              <select id="ciaWidgetIgSelector" onchange="changeCiaWidgetIG(this.value)">
+                <option value="IG1">IG1</option>
+                <option value="IG2" selected>IG2</option>
+                <option value="IG3">IG3</option>
+              </select>
             </div>
           </div>
           <div id="ciaAndCmmcContainer"></div>
@@ -104,29 +120,6 @@
           <span class="badge badge-emerald">0.0% Falsos Positivos</span>
         </div>
         <div id="riskGraphSvgContainer" style="width:100%; overflow-x:auto;"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">&#128197; Metodologia Iterativa e Cronograma Integrado (2º Semestre de 2026)</div>
-            <div class="card-subtitle">Fusão da Pesquisa Aplicada, Desenvolvimento Iterativo (Core &rarr; APIs &rarr; UI) e Validação em 3 Níveis</div>
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table id="timelineTable">
-            <thead>
-              <tr>
-                <th>Etapa Metodológica / Ciclo Iterativo</th>
-                <th>Situação</th>
-                <th>Período</th>
-                <th>Entregável Técnico &amp; Acadêmico</th>
-                <th>Progresso</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
       </div>
     </section>
 
@@ -643,7 +636,7 @@
   <!-- Rodapé Institucional e Controles Globais -->
   <footer class="app-header app-footer-main">
     <div class="brand-group">
-      <div class="brand-logo">NX</div>
+      <img src="logo-nexo.jpg" alt="Logo NEXO Gap Analysis" class="brand-logo-img" />
       <div class="brand-title">
         <h1>
           NEXO — Automatização de Gap Analysis em Sistemas de Gestão de Segurança
